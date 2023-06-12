@@ -1,12 +1,12 @@
 {
-  "name": "zed-drivers-x86-cudev",
+  "name": "zed_drivers-x86-cudev",
   "dockerComposeFile": [
     "docker-compose.yaml"
   ],
   // Only start this service
-  "service": "zed-drivers-x86-cudev",
+  "service": "zed_drivers-x86-cudev",
   "runServices": [
-    "zed-drivers-x86-cudev"
+    "zed_drivers-x86-cudev"
   ],
   // Stop container if VS Code is shut down
   "shutdownAction": "stopCompose",

@@ -8,14 +8,14 @@
 version: "3.9"
 
 services:
-  zed-drivers-jetson5c7:
+  zed_drivers-jetson5c7:
     build:
       context: ../
       network: host
       dockerfile: Dockerfile
       args:
         - USER_UID=1000
-    image: zed-drivers:jetson5c7
+    image: zed_drivers:jetson5c7
     environment:
       TERM: xterm-256color
       DISPLAY:

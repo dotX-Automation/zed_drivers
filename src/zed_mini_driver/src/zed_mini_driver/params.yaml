@@ -1,0 +1,20 @@
+header_include_path: zed_mini_driver/zed_mini_driver.hpp
+namespace: ZEDMiniDriver
+node_class_name: ZEDMiniDriverNode
+
+params:
+  link_namespace:
+    type: string
+    default: ""
+    description: "Namespace for the zedm link, including the last trailing slash."
+    constraints: "Must be a valid link namespace."
+    read_only: true
+    var_name: link_namespace_
+
+  verbose:
+    type: bool
+    default: false
+    description: "Print detailed camera information on stdout."
+    constraints: ""
+    read_only: false
+    var_name: verbose_

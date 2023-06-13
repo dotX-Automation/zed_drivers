@@ -24,6 +24,7 @@ find_package(ament_cmake REQUIRED)
 find_package(camera_info_manager REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(dua_app_management REQUIRED)
+find_package(dua_interfaces REQUIRED)
 find_package(dua_node REQUIRED)
 find_package(dua_qos REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -71,6 +72,7 @@ target_link_libraries(zed_mini_driver
 ament_target_dependencies(zed_mini_driver
   camera_info_manager
   dua_app_management
+  dua_interfaces
   dua_node
   dua_qos
   geometry_msgs

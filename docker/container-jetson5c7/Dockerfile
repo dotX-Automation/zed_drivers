@@ -15,8 +15,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # IMAGE SETUP START #
 # zed_drivers START #
 # Install ZED SDK dependencies
-RUN sudo apt-get update && \
-  sudo apt-get install --no-install-recommends \
+RUN apt-get update && \
+  apt-get install --no-install-recommends \
   apt-transport-https \
   udev \
   zstd && \

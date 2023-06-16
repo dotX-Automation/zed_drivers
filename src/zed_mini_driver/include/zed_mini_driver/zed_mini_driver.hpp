@@ -37,6 +37,7 @@
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
+#include <tf2/exceptions.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -72,7 +73,6 @@ private:
   /* Node initialization routines. */
   void init_atomics();
   void init_parameters();
-  void init_subscriptions();
   void init_publishers();
   void init_services();
 
@@ -88,8 +88,8 @@ private:
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr camera_pose_pub_;
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr base_link_pose_pub_;
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
-  rclcpp::Publisher<PointCloud2WithROI>::SharedPtr point_cloud_roi_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
+  rclcpp::Publisher<PointCloud2WithROI>::SharedPtr point_cloud_roi_pub_;
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_camera_pose_pub_;
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_base_link_pose_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_pub_;
@@ -100,12 +100,12 @@ private:
   std::shared_ptr<image_transport::CameraPublisher> depth_pub_;
 
   /* Service servers. */
-  rclcpp::Service<SetBool>::SharedPtr enable_service_;
+  rclcpp::Service<SetBool>::SharedPtr enable_srv_;
 
   /* Service callbacks. */
   void enable_callback(
-    const SetBool::Request::SharedPtr request,
-    const SetBool::Response::SharedPtr response);
+    const SetBool::Request::SharedPtr req,
+    const SetBool::Response::SharedPtr resp);
 
   /* Synchronization primitives. */
   std::mutex tf_lock_;
@@ -113,9 +113,9 @@ private:
   /* Internal state and data. */
   std::atomic<bool> running_;
   std::atomic<bool> tf_listening_;
-  camera_info_manager::CameraInfo left_info_;
-  camera_info_manager::CameraInfo right_info_;
-  camera_info_manager::CameraInfo depth_info_;
+  camera_info_manager::CameraInfo left_info_{};
+  camera_info_manager::CameraInfo right_info_{};
+  camera_info_manager::CameraInfo depth_info_{};
   std::shared_ptr<camera_info_manager::CameraInfoManager> left_info_manager_;
   std::shared_ptr<camera_info_manager::CameraInfoManager> right_info_manager_;
   std::shared_ptr<camera_info_manager::CameraInfoManager> depth_info_manager_;

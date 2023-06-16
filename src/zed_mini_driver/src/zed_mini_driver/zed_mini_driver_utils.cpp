@@ -62,22 +62,91 @@ bool ZEDMiniDriverNode::open_camera()
   }
 
   // Camera positional tracking parameters
-  // TODO
+  sl::PositionalTrackingParameters tracking_params;
+  tracking_params.enable_area_memory = true;
+  tracking_params.enable_pose_smoothing = true;
+  tracking_params.set_floor_as_origin = false;
+  tracking_params.enable_imu_fusion = true;
+  tracking_params.set_as_static = false;
+  tracking_params.depth_min_range = -1.0f;
+  tracking_params.set_gravity_as_origin = true;
 
-  // Camera depth sensing parameters
-  // TODO
+  sl::ERROR_CODE err;
 
   // Open the camera
-  // TODO
+  err = zed_.open(init_params);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "ZEDMiniDriverNode::open_camera: Failed to open the camera (%d): %s",
+      static_cast<int>(err),
+      sl::toString(err).c_str());
+    return false;
+  }
 
   // Enable positional tracking
-  // TODO
+  err = zed_.enablePositionalTracking(tracking_params);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "ZEDMiniDriverNode::open_camera: Failed to enable positional tracking (%d): %s",
+      static_cast<int>(err),
+      sl::toString(err).c_str());
+    zed_.close();
+    return false;
+  }
 
-  // Enable depth sensing
-  // TODO
+  sl::CameraInformation zed_info = zed_.getCameraInformation();
+  sl::CameraParameters left_info = zed_info.camera_configuration.calibration_parameters.left_cam;
+  sl::CameraParameters right_info = zed_info.camera_configuration.calibration_parameters.right_cam;
 
-  // Set camera_infos and print them, if requested
-  // TODO
+  // Set left camera_info
+  left_info_.header.set__frame_id(link_namespace_ + "zedm_left_link");
+  left_info_.set__height(static_cast<uint32_t>(zed_info.camera_configuration.resolution.height));
+  left_info_.set__width(static_cast<uint32_t>(zed_info.camera_configuration.resolution.width));
+  left_info_.set__distortion_model("plumb_bob");
+  left_info_.d.reserve(5);
+  for (int i = 0; i < 5; i++) {
+    left_info_.d.push_back(left_info.disto[i]);
+  }
+  left_info_.k[0] = left_info.fx;
+  left_info_.k[2] = left_info.cx;
+  left_info_.k[4] = left_info.fy;
+  left_info_.k[5] = left_info.cy;
+  left_info_.k[8] = 1.0;
+  left_info_.r[0] = 1.0;
+  left_info_.r[4] = 1.0;
+  left_info_.r[8] = 1.0;
+  left_info_.p[0] = left_info.fx;
+  left_info_.p[2] = left_info.cx;
+  left_info_.p[5] = left_info.fy;
+  left_info_.p[6] = left_info.cy;
+  left_info_.p[10] = 1.0;
+
+  // Set right camera_info
+  right_info_.header.set__frame_id(link_namespace_ + "zedm_right_link");
+  right_info_.set__height(static_cast<uint32_t>(zed_info.camera_configuration.resolution.height));
+  right_info_.set__width(static_cast<uint32_t>(zed_info.camera_configuration.resolution.width));
+  right_info_.set__distortion_model("plumb_bob");
+  right_info_.d.reserve(5);
+  for (int i = 0; i < 5; i++) {
+    right_info_.d.push_back(right_info.disto[i]);
+  }
+  right_info_.k[0] = right_info.fx;
+  right_info_.k[2] = right_info.cx;
+  right_info_.k[4] = right_info.fy;
+  right_info_.k[5] = right_info.cy;
+  right_info_.k[8] = 1.0;
+  right_info_.r[0] = 1.0;
+  right_info_.r[4] = 1.0;
+  right_info_.r[8] = 1.0;
+  right_info_.p[0] = right_info.fx;
+  right_info_.p[2] = right_info.cx;
+  right_info_.p[3] =
+    -right_info.fx * zed_info.camera_configuration.calibration_parameters.getCameraBaseline();
+  right_info_.p[5] = right_info.fy;
+  right_info_.p[6] = right_info.cy;
+  right_info_.p[10] = 1.0;
 }
 
 /**

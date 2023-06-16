@@ -97,7 +97,7 @@ private:
   /* image_transport publishers. */
   std::shared_ptr<image_transport::CameraPublisher> left_rect_pub_;
   std::shared_ptr<image_transport::CameraPublisher> right_rect_pub_;
-  std::shared_ptr<image_transport::CameraPublisher> depth_pub_;
+  std::shared_ptr<image_transport::Publisher> depth_pub_;
 
   /* Service servers. */
   rclcpp::Service<SetBool>::SharedPtr enable_srv_;
@@ -116,17 +116,12 @@ private:
   std::atomic<bool> tf_listening_;
   camera_info_manager::CameraInfo left_info_{};
   camera_info_manager::CameraInfo right_info_{};
-  camera_info_manager::CameraInfo depth_info_{};
-  std::shared_ptr<camera_info_manager::CameraInfoManager> left_info_manager_;
-  std::shared_ptr<camera_info_manager::CameraInfoManager> right_info_manager_;
-  std::shared_ptr<camera_info_manager::CameraInfoManager> depth_info_manager_;
 
   /* Camera sampling thread and routine. */
   void camera_routine();
   std::thread camera_thread_;
 
   /* Node parameters. */
-  bool verbose_ = false;
   int fps_ = 15;
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;

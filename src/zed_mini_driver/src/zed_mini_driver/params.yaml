@@ -10,13 +10,6 @@ params:
     constraints: "Must be a valid file path"
     read_only: false
 
-  depth_camera_info_url:
-    type: string
-    default: ""
-    description: "URL of the depth camera calibration file"
-    constraints: "Must be a valid URL"
-    read_only: true
-
   depth_max_distance:
     type: double
     default: 5.0
@@ -66,13 +59,6 @@ params:
     read_only: false
     validator: validate_fps
 
-  left_camera_info_url:
-    type: string
-    default: ""
-    description: "URL of the left camera calibration file"
-    constraints: "Must be a valid URL"
-    read_only: true
-
   link_namespace:
     type: string
     default: ""
@@ -89,13 +75,6 @@ params:
     read_only: false
     validator: validate_resolution
 
-  right_camera_info_url:
-    type: string
-    default: ""
-    description: "URL of the right camera calibration file"
-    constraints: "Must be a valid URL"
-    read_only: true
-
   serial_number:
     type: integer
     default: -1
@@ -104,11 +83,3 @@ params:
     description: "Serial number of the camera to open"
     constraints: "Must be a valid serial number, or -1 to open the first available camera"
     read_only: false
-
-  verbose:
-    type: bool
-    default: false
-    description: "Print detailed camera information on stdout"
-    constraints: ""
-    read_only: false
-    var_name: verbose_

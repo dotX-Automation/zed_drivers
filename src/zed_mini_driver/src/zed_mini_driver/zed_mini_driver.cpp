@@ -25,35 +25,6 @@ ZEDMiniDriverNode::ZEDMiniDriverNode(const rclcpp::NodeOptions & opts)
   init_publishers();
   init_services();
 
-  // Initialize camera_info_managers
-  left_info_manager_ = std::make_shared<camera_info_manager::CameraInfoManager>(
-    this,
-    "zedm_left");
-  right_info_manager_ = std::make_shared<camera_info_manager::CameraInfoManager>(
-    this,
-    "zedm_right");
-  depth_info_manager_ = std::make_shared<camera_info_manager::CameraInfoManager>(
-    this,
-    "zedm_depth");
-  if (!left_info_manager_->loadCameraInfo(this->get_parameter("left_camera_info_url").as_string())) {
-    RCLCPP_ERROR(this->get_logger(), "ZEDMiniDriverNode::ZEDMiniDriverNode: Left camera info not found");
-  } else {
-    left_info_ = left_info_manager_->getCameraInfo();
-  }
-  if (!right_info_manager_->loadCameraInfo(this->get_parameter("right_camera_info_url").as_string())) {
-    RCLCPP_ERROR(this->get_logger(), "ZEDMiniDriverNode::ZEDMiniDriverNode: Right camera info not found");
-  } else {
-    right_info_ = right_info_manager_->getCameraInfo();
-  }
-  if (!depth_info_manager_->loadCameraInfo(this->get_parameter("depth_camera_info_url").as_string())) {
-    RCLCPP_ERROR(this->get_logger(), "ZEDMiniDriverNode::ZEDMiniDriverNode: Depth camera info not found");
-  } else {
-    depth_info_ = depth_info_manager_->getCameraInfo();
-  }
-  left_info_.header.set__frame_id(link_namespace_ + "zedm_link/left");
-  right_info_.header.set__frame_id(link_namespace_ + "zedm_link/right");
-  depth_info_.header.set__frame_id(link_namespace_ + "zedm_link/left");
-
   // Start TF listener thread
   tf_thread_ = std::thread(&ZEDMiniDriverNode::tf_thread_routine, this);
 
@@ -87,11 +58,6 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
   right_rect_pub_.reset();
   depth_pub_->shutdown();
   depth_pub_.reset();
-
-  // Destroy camera_info_managers
-  left_info_manager_.reset();
-  right_info_manager_.reset();
-  depth_info_manager_.reset();
 }
 
 /**
@@ -163,7 +129,7 @@ void ZEDMiniDriverNode::init_publishers()
       DUAQoS::get_image_qos().get_rmw_qos_profile()));
 
   // depth
-  depth_pub_ = std::make_shared<image_transport::CameraPublisher>(
+  depth_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_camera_publisher(
       this,
       "~/depth",

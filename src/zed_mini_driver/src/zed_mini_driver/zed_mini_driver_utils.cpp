@@ -147,6 +147,8 @@ bool ZEDMiniDriverNode::open_camera()
   right_info_.p[5] = right_info.fy;
   right_info_.p[6] = right_info.cy;
   right_info_.p[10] = 1.0;
+
+  return true;
 }
 
 /**

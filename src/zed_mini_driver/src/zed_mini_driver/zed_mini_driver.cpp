@@ -74,14 +74,14 @@ void ZEDMiniDriverNode::init_atomics()
  */
 void ZEDMiniDriverNode::init_publishers()
 {
-  // camera_pose
-  camera_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
-    "~/camera_pose",
+  // base_link_odom
+  base_link_odom_pub_ = this->create_publisher<Odometry>(
+    "~/base_link_odom",
     DUAQoS::get_datum_qos(5));
 
-  // base_link_pose
-  base_link_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
-    "~/base_link_pose",
+  // camera_odom
+  camera_odom_pub_ = this->create_publisher<Odometry>(
+    "~/camera_odom",
     DUAQoS::get_datum_qos(5));
 
   // imu
@@ -99,14 +99,24 @@ void ZEDMiniDriverNode::init_publishers()
     "~/point_cloud_roi",
     DUAQoS::get_datum_qos(1));
 
-  // rviz/camera_pose
-  rviz_camera_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
-    "~/rviz/camera_pose",
+  // rviz/base_link_odom
+  rviz_base_link_odom_pub_ = this->create_publisher<Odometry>(
+    "~/rviz/base_link_odom",
     DUAQoS::Visualization::get_datum_qos(5));
 
   // rviz/base_link_pose
-  rviz_base_link_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
+  rviz_base_link_pose_pub_ = this->create_publisher<PoseStamped>(
     "~/rviz/base_link_pose",
+    DUAQoS::Visualization::get_datum_qos(5));
+
+  // rviz/camera_odom
+  rviz_camera_odom_pub_ = this->create_publisher<Odometry>(
+    "~/rviz/camera_odom",
+    DUAQoS::Visualization::get_datum_qos(5));
+
+  // rviz/camera_pose
+  rviz_camera_pose_pub_ = this->create_publisher<PoseStamped>(
+    "~/rviz/camera_pose",
     DUAQoS::Visualization::get_datum_qos(5));
 
   // rviz/point_cloud
@@ -130,7 +140,7 @@ void ZEDMiniDriverNode::init_publishers()
 
   // depth
   depth_pub_ = std::make_shared<image_transport::Publisher>(
-    image_transport::create_camera_publisher(
+    image_transport::create_publisher(
       this,
       "~/depth",
       DUAQoS::get_image_qos().get_rmw_qos_profile()));

@@ -5,14 +5,25 @@ node_class_name: ZEDMiniDriverNode
 params:
   camera_settings_path:
     type: string
-    default: ""
+    default_value: ""
     description: "Path to the ZED camera settings file"
     constraints: "Must be a valid file path"
     read_only: false
 
+  confidence:
+    type: integer
+    default_value: 50
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Depth onfidence threshold"
+    constraints: "Must be a valid confidence threshold for the ZED camera"
+    read_only: false
+    var_name: confidence_
+
   depth_max_distance:
     type: double
-    default: 5.0
+    default_value: 5.0
     min_value: 1.0
     max_value: 20.0
     step: 0.0
@@ -22,7 +33,7 @@ params:
 
   depth_min_distance:
     type: double
-    default: 0.3
+    default_value: 0.3
     min_value: 0.1
     max_value: 1.0
     step: 0.0
@@ -32,7 +43,7 @@ params:
 
   depth_mode:
     type: string
-    default: QUALITY
+    default_value: QUALITY
     description: "Depth mode"
     constraints: "Must be a valid depth mode for the ZED camera"
     read_only: false
@@ -40,7 +51,7 @@ params:
 
   depth_stabilization:
     type: integer
-    default: 1
+    default_value: 1
     min_value: 0
     max_value: 100
     step: 1
@@ -50,7 +61,7 @@ params:
 
   fps:
     type: integer
-    default: 30
+    default_value: 30
     min_value: 15
     max_value: 100
     step: 1
@@ -61,7 +72,7 @@ params:
 
   link_namespace:
     type: string
-    default: ""
+    default_value: ""
     description: "Namespace for the zedm link, including the last trailing slash"
     constraints: "Must be a valid link namespace."
     read_only: true
@@ -69,7 +80,7 @@ params:
 
   resolution:
     type: string
-    default: HD720
+    default_value: HD720
     description: "Camera resolution"
     constraints: "Must be a valid resolution for the ZED camera"
     read_only: false
@@ -77,9 +88,29 @@ params:
 
   serial_number:
     type: integer
-    default: -1
+    default_value: -1
     min_value: -1
     max_value: 2147483647
+    step: 1
     description: "Serial number of the camera to open"
     constraints: "Must be a valid serial number, or -1 to open the first available camera"
     read_only: false
+
+  texture_confidence:
+    type: integer
+    default_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Texture confidence threshold"
+    constraints: "Must be a valid texture confidence threshold for the ZED camera"
+    read_only: false
+    var_name: texture_confidence_
+
+  verbose:
+    type: bool
+    default_value: true
+    description: "Enables additional logging"
+    constraints: ""
+    read_only: false
+    var_name: verbose_

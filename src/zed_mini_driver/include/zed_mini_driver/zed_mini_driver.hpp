@@ -20,6 +20,8 @@
 #include <thread>
 #include <vector>
 
+#include <Eigen/Geometry>
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -29,6 +31,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <pose_kit/pose.hpp>
+#include <pose_kit/kinematic_pose.hpp>
 
 #include <dua_node/dua_node.hpp>
 #include <dua_qos/dua_qos.hpp>
@@ -42,18 +45,22 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <dua_interfaces/msg/point_cloud2_with_roi.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_msgs/msg/header.hpp>
 
 #include <std_srvs/srv/set_bool.hpp>
 
 using namespace dua_interfaces::msg;
 using namespace geometry_msgs::msg;
+using namespace nav_msgs::msg;
 using namespace sensor_msgs::msg;
+using namespace std_msgs::msg;
 
 using namespace std_srvs::srv;
 
@@ -80,18 +87,21 @@ private:
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   TransformStamped odom_to_camera_odom_{};
+  TransformStamped base_link_to_camera_{};
   TransformStamped map_to_camera_odom_{};
   std::thread tf_thread_;
   void tf_thread_routine();
 
   /* Topic publishers. */
-  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr camera_pose_pub_;
-  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr base_link_pose_pub_;
+  rclcpp::Publisher<Odometry>::SharedPtr base_link_odom_pub_;
+  rclcpp::Publisher<Odometry>::SharedPtr camera_odom_pub_;
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
   rclcpp::Publisher<PointCloud2WithROI>::SharedPtr point_cloud_roi_pub_;
-  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_camera_pose_pub_;
-  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_base_link_pose_pub_;
+  rclcpp::Publisher<Odometry>::SharedPtr rviz_base_link_odom_pub_;
+  rclcpp::Publisher<PoseStamped>::SharedPtr rviz_base_link_pose_pub_;
+  rclcpp::Publisher<Odometry>::SharedPtr rviz_camera_odom_pub_;
+  rclcpp::Publisher<PoseStamped>::SharedPtr rviz_camera_pose_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_pub_;
 
   /* image_transport publishers. */
@@ -122,10 +132,13 @@ private:
   std::thread camera_thread_;
 
   /* Node parameters. */
+  int64_t confidence_ = 50;
+  sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int fps_ = 15;
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
-  sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
+  int64_t texture_confidence_ = 100;
+  bool verbose_ = false;
 
   /* Node parameters validators. */
   bool validate_depth_mode(const rclcpp::Parameter & p);

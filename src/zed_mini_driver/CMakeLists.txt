@@ -14,7 +14,13 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  # Unusually, we want to disable some warnings because of misshaps in the ZED SDK
+  add_compile_options(
+    -Wall
+    -Wextra
+    -Wno-deprecated-copy
+    -Wno-ignored-qualifiers
+    -Wno-unused-parameter)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -27,14 +33,17 @@ find_package(dua_app_management REQUIRED)
 find_package(dua_interfaces REQUIRED)
 find_package(dua_node REQUIRED)
 find_package(dua_qos REQUIRED)
+find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(params_manager REQUIRED)
 find_package(pose_kit REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -59,6 +68,7 @@ target_include_directories(zed_mini_driver PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${CUDA_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
   ${ZED_INCLUDE_DIRS})
 target_compile_features(zed_mini_driver PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_link_directories(zed_mini_driver PUBLIC
@@ -66,6 +76,7 @@ target_link_directories(zed_mini_driver PUBLIC
   ${ZED_LIBRARY_DIR})
 target_link_libraries(zed_mini_driver
   ${CUDA_LIBRARIES}
+  Eigen3::Eigen
   ${OpenCV_LIBS}
   ${ZED_LIBRARIES}
   Threads::Threads)
@@ -77,11 +88,13 @@ ament_target_dependencies(zed_mini_driver
   dua_qos
   geometry_msgs
   image_transport
+  nav_msgs
   params_manager
   pose_kit
   rclcpp
   rclcpp_components
   sensor_msgs
+  std_msgs
   std_srvs
   tf2
   tf2_ros)

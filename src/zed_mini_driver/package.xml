@@ -16,11 +16,13 @@
   <depend>dua_qos</depend>
   <depend>geometry_msgs</depend>
   <depend>image_transport</depend>
+  <depend>nav_msgs</depend>
   <depend>params_manager</depend>
   <depend>pose_kit</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>

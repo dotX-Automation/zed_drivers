@@ -111,6 +111,7 @@ private:
   std::mutex tf_lock_;
 
   /* Internal state and data. */
+  sl::Camera zed_;
   std::atomic<bool> running_;
   std::atomic<bool> tf_listening_;
   camera_info_manager::CameraInfo left_info_{};
@@ -126,9 +127,15 @@ private:
 
   /* Node parameters. */
   bool verbose_ = false;
+  int fps_ = 15;
   std::string link_namespace_ = "";
+  sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
+  sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
 
   /* Node parameters validators. */
+  bool validate_depth_mode(const rclcpp::Parameter & p);
+  bool validate_fps(const rclcpp::Parameter & p);
+  bool validate_resolution(const rclcpp::Parameter & p);
 
   /* Auxiliary routines. */
   bool open_camera();

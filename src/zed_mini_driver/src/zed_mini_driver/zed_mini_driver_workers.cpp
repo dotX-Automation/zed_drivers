@@ -15,6 +15,28 @@ namespace ZEDMiniDriver
 {
 
 /**
+ * @brief Camera sampling routine: gets and publishes data from all sensors.
+ *
+ * @throws RuntimeError if the camera cannot be opened.s
+ */
+void ZEDMiniDriverNode::camera_routine()
+{
+  // Open camera
+  if (!open_camera()) {
+    throw std::runtime_error("ZEDMiniDriverNode::camera_routine: Failed to open camera");
+  }
+
+  // Run until stopped
+  while (running_.load(std::memory_order_acquire))
+  {
+    // TODO
+  }
+
+  // Close camera
+  close_camera();
+}
+
+/**
  * @brief Listens for incoming TFs.
  */
 void ZEDMiniDriverNode::tf_thread_routine()

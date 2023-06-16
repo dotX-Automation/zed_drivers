@@ -3,12 +3,68 @@ namespace: ZEDMiniDriver
 node_class_name: ZEDMiniDriverNode
 
 params:
+  camera_settings_path:
+    type: string
+    default: ""
+    description: "Path to the ZED camera settings file"
+    constraints: "Must be a valid file path"
+    read_only: false
+
   depth_camera_info_url:
     type: string
     default: ""
     description: "URL of the depth camera calibration file"
     constraints: "Must be a valid URL"
     read_only: true
+
+  depth_max_distance:
+    type: double
+    default: 5.0
+    min_value: 1.0
+    max_value: 20.0
+    step: 0.0
+    description: "Maximum depth distance [m]"
+    constraints: "Must be a valid maximum depth distance for the ZED camera"
+    read_only: false
+
+  depth_min_distance:
+    type: double
+    default: 0.3
+    min_value: 0.1
+    max_value: 1.0
+    step: 0.0
+    description: "Minimum depth distance [m]"
+    constraints: "Must be a valid minimum depth distance for the ZED camera"
+    read_only: false
+
+  depth_mode:
+    type: string
+    default: QUALITY
+    description: "Depth mode"
+    constraints: "Must be a valid depth mode for the ZED camera"
+    read_only: false
+    validator: validate_depth_mode
+
+  depth_stabilization:
+    type: integer
+    default: 1
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Depth stabilization"
+    constraints: "Must be a valid depth stabilization value for the ZED camera"
+    read_only: false
+
+  fps:
+    type: integer
+    default: 30
+    min_value: 15
+    max_value: 100
+    step: 1
+    description: "Frame rate of the camera"
+    constraints: "Must be a valid frame rate for the ZED camera"
+    read_only: false
+    validator: validate_fps
 
   left_camera_info_url:
     type: string
@@ -25,12 +81,29 @@ params:
     read_only: true
     var_name: link_namespace_
 
+  resolution:
+    type: string
+    default: HD720
+    description: "Camera resolution"
+    constraints: "Must be a valid resolution for the ZED camera"
+    read_only: false
+    validator: validate_resolution
+
   right_camera_info_url:
     type: string
     default: ""
     description: "URL of the right camera calibration file"
     constraints: "Must be a valid URL"
     read_only: true
+
+  serial_number:
+    type: integer
+    default: -1
+    min_value: -1
+    max_value: 2147483647
+    description: "Serial number of the camera to open"
+    constraints: "Must be a valid serial number, or -1 to open the first available camera"
+    read_only: false
 
   verbose:
     type: bool

@@ -114,6 +114,8 @@ private:
   /* image_transport publishers. */
   std::shared_ptr<image_transport::CameraPublisher> left_rect_pub_;
   std::shared_ptr<image_transport::CameraPublisher> right_rect_pub_;
+  std::shared_ptr<image_transport::CameraPublisher> left_rect_sd_pub_;
+  std::shared_ptr<image_transport::CameraPublisher> right_rect_sd_pub_;
   std::shared_ptr<image_transport::Publisher> depth_pub_;
 
   /* Service servers. */
@@ -128,7 +130,9 @@ private:
   sl::Camera zed_;
   std::atomic<bool> running_;
   camera_info_manager::CameraInfo left_info_{};
+  camera_info_manager::CameraInfo left_sd_info_{};
   camera_info_manager::CameraInfo right_info_{};
+  camera_info_manager::CameraInfo right_sd_info_{};
 
   /* Camera sampling thread and routine. */
   void camera_routine();
@@ -140,6 +144,8 @@ private:
   int fps_ = 15;
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
+  int64_t sd_width_;
+  int64_t sd_height_;
   int64_t texture_confidence_ = 100;
   bool verbose_ = false;
 
@@ -151,6 +157,11 @@ private:
   /* Auxiliary routines. */
   bool open_camera();
   void close_camera();
+  void init_camera_info(
+    const sl::CameraParameters & zed_params,
+    camera_info_manager::CameraInfo & info,
+    std::string && frame_id,
+    double stereo_baseline = 0.0);
   void positional_tracking(sl::Pose & camera_pose);
   void sensor_sampling(sl::SensorsData & sensors_data);
   cv::Mat slMat2cvMat(sl::Mat & input);

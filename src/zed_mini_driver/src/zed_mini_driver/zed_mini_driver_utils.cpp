@@ -97,56 +97,37 @@ bool ZEDMiniDriverNode::open_camera()
   }
 
   sl::CameraInformation zed_info = zed_.getCameraInformation();
+  sl::CameraInformation zed_info_sd = zed_.getCameraInformation(
+    sl::Resolution(
+      sd_width_,
+      sd_height_));
   sl::CameraParameters left_info = zed_info.camera_configuration.calibration_parameters.left_cam;
+  sl::CameraParameters left_sd_info =
+    zed_info_sd.camera_configuration.calibration_parameters.left_cam;
   sl::CameraParameters right_info = zed_info.camera_configuration.calibration_parameters.right_cam;
+  sl::CameraParameters right_sd_info =
+    zed_info_sd.camera_configuration.calibration_parameters.right_cam;
 
-  // Set left camera_info
-  left_info_.header.set__frame_id(link_namespace_ + "zedm_left_link");
-  left_info_.set__height(static_cast<uint32_t>(zed_info.camera_configuration.resolution.height));
-  left_info_.set__width(static_cast<uint32_t>(zed_info.camera_configuration.resolution.width));
-  left_info_.set__distortion_model("plumb_bob");
-  left_info_.d.reserve(5);
-  for (int i = 0; i < 5; i++) {
-    left_info_.d.push_back(left_info.disto[i]);
-  }
-  left_info_.k[0] = left_info.fx;
-  left_info_.k[2] = left_info.cx;
-  left_info_.k[4] = left_info.fy;
-  left_info_.k[5] = left_info.cy;
-  left_info_.k[8] = 1.0;
-  left_info_.r[0] = 1.0;
-  left_info_.r[4] = 1.0;
-  left_info_.r[8] = 1.0;
-  left_info_.p[0] = left_info.fx;
-  left_info_.p[2] = left_info.cx;
-  left_info_.p[5] = left_info.fy;
-  left_info_.p[6] = left_info.cy;
-  left_info_.p[10] = 1.0;
-
-  // Set right camera_info
-  right_info_.header.set__frame_id(link_namespace_ + "zedm_right_link");
-  right_info_.set__height(static_cast<uint32_t>(zed_info.camera_configuration.resolution.height));
-  right_info_.set__width(static_cast<uint32_t>(zed_info.camera_configuration.resolution.width));
-  right_info_.set__distortion_model("plumb_bob");
-  right_info_.d.reserve(5);
-  for (int i = 0; i < 5; i++) {
-    right_info_.d.push_back(right_info.disto[i]);
-  }
-  right_info_.k[0] = right_info.fx;
-  right_info_.k[2] = right_info.cx;
-  right_info_.k[4] = right_info.fy;
-  right_info_.k[5] = right_info.cy;
-  right_info_.k[8] = 1.0;
-  right_info_.r[0] = 1.0;
-  right_info_.r[4] = 1.0;
-  right_info_.r[8] = 1.0;
-  right_info_.p[0] = right_info.fx;
-  right_info_.p[2] = right_info.cx;
-  right_info_.p[3] =
-    -right_info.fx * zed_info.camera_configuration.calibration_parameters.getCameraBaseline();
-  right_info_.p[5] = right_info.fy;
-  right_info_.p[6] = right_info.cy;
-  right_info_.p[10] = 1.0;
+  // Initialize camera_infos
+  init_camera_info(
+    left_info,
+    left_info_,
+    link_namespace_ + "zedm_left_link");
+  init_camera_info(
+    right_info,
+    right_info_,
+    link_namespace_ + "zedm_right_link",
+    -right_info.fx * zed_info.camera_configuration.calibration_parameters.getCameraBaseline());
+  init_camera_info(
+    left_sd_info,
+    left_sd_info_,
+    link_namespace_ + "zedm_left_link");
+  init_camera_info(
+    right_sd_info,
+    right_sd_info_,
+    link_namespace_ + "zedm_right_link",
+    -right_sd_info.fx *
+    zed_info_sd.camera_configuration.calibration_parameters.getCameraBaseline());
 
   // Print IMU->Left camera transform
   if (verbose_) {
@@ -191,7 +172,6 @@ Image::SharedPtr ZEDMiniDriverNode::frame_to_msg(cv::Mat & frame)
   // Set frame-relevant fields
   ros_image->set__width(frame.cols);
   ros_image->set__height(frame.rows);
-  ros_image->set__encoding(sensor_msgs::image_encodings::BGR8);
   ros_image->set__step(frame.cols * frame.elemSize());
   ros_image->set__is_bigendian(false);
 
@@ -220,6 +200,41 @@ cv::Mat ZEDMiniDriverNode::slMat2cvMat(sl::Mat & input)
     CV_8UC4,
     input.getPtr<sl::uchar1>(sl::MEM::CPU),
     input.getStepBytes(sl::MEM::CPU));
+}
+
+/**
+ * @brief Initializes a CameraInfo message structure.
+ *
+ * @param camera_info CameraInfo message to initialize.
+ */
+void ZEDMiniDriverNode::init_camera_info(
+  const sl::CameraParameters & zed_params,
+  camera_info_manager::CameraInfo & info,
+  std::string && frame_id,
+  double stereo_baseline)
+{
+  info.header.set__frame_id(frame_id);
+  info.set__height(static_cast<uint32_t>(zed_params.image_size.height));
+  info.set__width(static_cast<uint32_t>(zed_params.image_size.width));
+  info.set__distortion_model("plumb_bob");
+  info.d.reserve(5);
+  for (int i = 0; i < 5; i++) {
+    info.d.push_back(zed_params.disto[i]);
+  }
+  info.k[0] = zed_params.fx;
+  info.k[2] = zed_params.cx;
+  info.k[4] = zed_params.fy;
+  info.k[5] = zed_params.cy;
+  info.k[8] = 1.0;
+  info.r[0] = 1.0;
+  info.r[4] = 1.0;
+  info.r[8] = 1.0;
+  info.p[0] = zed_params.fx;
+  info.p[2] = zed_params.cx;
+  info.p[3] = stereo_baseline;
+  info.p[5] = zed_params.fy;
+  info.p[6] = zed_params.cy;
+  info.p[10] = 1.0;
 }
 
 /**

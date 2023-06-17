@@ -26,11 +26,31 @@ void ZEDMiniDriverNode::camera_routine()
     throw std::runtime_error("ZEDMiniDriverNode::camera_routine: Failed to open camera");
   }
 
-  // Run until stopped
-  sl::ERROR_CODE err;
+  // Prepare positional tracking data
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
+
+  // Prepare sensors data
   sl::SensorsData sensor_data;
+
+  // Prepare image sampling data
+  sl::Resolution camera_res = zed_.getCameraInformation().camera_configuration.resolution;
+  sl::Resolution sd_res(sd_width_, sd_height_);
+  sl::Mat left_frame(camera_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
+  sl::Mat right_frame(camera_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
+  sl::Mat left_frame_sd(sd_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
+  sl::Mat right_frame_sd(sd_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
+  cv::Mat left_frame_cv = slMat2cvMat(left_frame);
+  cv::Mat right_frame_cv = slMat2cvMat(right_frame);
+  cv::Mat left_frame_cv_sd = slMat2cvMat(left_frame_sd);
+  cv::Mat right_frame_cv_sd = slMat2cvMat(right_frame_sd);
+  cv::Mat left_frame_cv_bgr(left_frame_cv.size(), CV_8UC3);
+  cv::Mat right_frame_cv_bgr(left_frame_cv.size(), CV_8UC3);
+  cv::Mat left_frame_cv_bgr_sd(left_frame_cv_sd.size(), CV_8UC3);
+  cv::Mat right_frame_cv_bgr_sd(right_frame_cv_sd.size(), CV_8UC3);
+
+  // Run until stopped
+  sl::ERROR_CODE err;
   sl::RuntimeParameters runtime_params;
   runtime_params.measure3D_reference_frame = sl::REFERENCE_FRAME::WORLD;
   runtime_params.enable_depth = true;
@@ -78,6 +98,66 @@ void ZEDMiniDriverNode::camera_routine()
     if (zed_.getSensorsData(sensor_data, sl::TIME_REFERENCE::CURRENT) == sl::ERROR_CODE::SUCCESS) {
       sensor_sampling(sensor_data);
     }
+
+    // Retrieve frames
+    zed_.retrieveImage(left_frame, sl::VIEW::LEFT, sl::MEM::CPU, camera_res);
+    zed_.retrieveImage(right_frame, sl::VIEW::RIGHT, sl::MEM::CPU, camera_res);
+    zed_.retrieveImage(left_frame_sd, sl::VIEW::LEFT, sl::MEM::CPU, sd_res);
+    zed_.retrieveImage(right_frame_sd, sl::VIEW::RIGHT, sl::MEM::CPU, sd_res);
+
+    // Convert frames to BGR8 in OpenCV
+    cv::cvtColor(left_frame_cv, left_frame_cv_bgr, cv::COLOR_BGRA2BGR);
+    cv::cvtColor(right_frame_cv, right_frame_cv_bgr, cv::COLOR_BGRA2BGR);
+    cv::cvtColor(left_frame_cv_sd, left_frame_cv_bgr_sd, cv::COLOR_BGRA2BGR);
+    cv::cvtColor(right_frame_cv_sd, right_frame_cv_bgr_sd, cv::COLOR_BGRA2BGR);
+
+    // Allocate Image messages
+    Image::SharedPtr left_frame_msg = frame_to_msg(left_frame_cv_bgr);
+    Image::SharedPtr right_frame_msg = frame_to_msg(right_frame_cv_bgr);
+    Image::SharedPtr left_frame_msg_sd = frame_to_msg(left_frame_cv_bgr_sd);
+    Image::SharedPtr right_frame_msg_sd = frame_to_msg(right_frame_cv_bgr_sd);
+
+    // Set Image messages headers and metadata
+    left_frame_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
+    left_frame_msg->header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+    left_frame_msg->header.stamp.set__nanosec(
+      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    left_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
+    left_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_left_link");
+    left_frame_msg_sd->header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+    left_frame_msg_sd->header.stamp.set__nanosec(
+      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    left_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
+    right_frame_msg->header.set__frame_id(link_namespace_ + "zedm_right_link");
+    right_frame_msg->header.stamp.set__sec(static_cast<int32_t>(right_frame.timestamp.getSeconds()));
+    right_frame_msg->header.stamp.set__nanosec(
+      static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    right_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
+    right_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_right_link");
+    right_frame_msg_sd->header.stamp.set__sec(static_cast<int32_t>(right_frame.timestamp.getSeconds()));
+    right_frame_msg_sd->header.stamp.set__nanosec(
+      static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    right_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
+
+    // Stamp camera_infos
+    left_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+    left_info_.header.stamp.set__nanosec(
+      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    left_sd_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+    left_sd_info_.header.stamp.set__nanosec(
+      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    right_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+    right_info_.header.stamp.set__nanosec(
+      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+    right_sd_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+    right_sd_info_.header.stamp.set__nanosec(
+      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+
+    // Publish images
+    left_rect_pub_->publish(*left_frame_msg, left_info_);
+    left_rect_sd_pub_->publish(*left_frame_msg_sd, left_sd_info_);
+    right_rect_pub_->publish(*right_frame_msg, right_info_);
+    right_rect_sd_pub_->publish(*right_frame_msg_sd, right_sd_info_);
   }
 
   // Close camera

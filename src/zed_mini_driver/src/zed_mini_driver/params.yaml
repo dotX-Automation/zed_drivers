@@ -86,6 +86,28 @@ params:
     read_only: false
     validator: validate_resolution
 
+  sd_width:
+    type: integer
+    default_value: 768
+    min_value: 0
+    max_value: 1920
+    step: 1
+    description: "Width of SD images"
+    constraints: "Must be a valid image width"
+    read_only: true
+    var_name: sd_width_
+
+  sd_height:
+    type: integer
+    default_value: 432
+    min_value: 0
+    max_value: 1080
+    step: 1
+    description: "Height of SD images"
+    constraints: "Must be a valid image height"
+    read_only: true
+    var_name: sd_height_
+
   serial_number:
     type: integer
     default_value: -1

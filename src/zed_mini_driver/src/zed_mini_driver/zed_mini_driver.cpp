@@ -48,8 +48,12 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
   // Destroy image_transport publishers
   left_rect_pub_->shutdown();
   left_rect_pub_.reset();
+  left_rect_sd_pub_->shutdown();
+  left_rect_sd_pub_.reset();
   right_rect_pub_->shutdown();
   right_rect_pub_.reset();
+  right_rect_sd_pub_->shutdown();
+  right_rect_sd_pub_.reset();
   depth_pub_->shutdown();
   depth_pub_.reset();
 
@@ -138,11 +142,25 @@ void ZEDMiniDriverNode::init_publishers()
       "~/left/image_rect_color",
       DUAQoS::get_image_qos().get_rmw_qos_profile()));
 
+  // left/sd/image_rect_color
+  left_rect_sd_pub_ = std::make_shared<image_transport::CameraPublisher>(
+    image_transport::create_camera_publisher(
+      this,
+      "~/left/sd/image_rect_color",
+      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+
   // right/image_rect_color
   right_rect_pub_ = std::make_shared<image_transport::CameraPublisher>(
     image_transport::create_camera_publisher(
       this,
       "~/right/image_rect_color",
+      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+
+  // right/sd/image_rect_color
+  right_rect_sd_pub_ = std::make_shared<image_transport::CameraPublisher>(
+    image_transport::create_camera_publisher(
+      this,
+      "~/right/sd/image_rect_color",
       DUAQoS::get_image_qos().get_rmw_qos_profile()));
 
   // depth

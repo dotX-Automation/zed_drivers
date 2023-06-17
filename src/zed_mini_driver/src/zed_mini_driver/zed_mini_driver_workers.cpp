@@ -7,8 +7,6 @@
  * June 13, 2023
  */
 
-#define NOOP ((void)0)
-
 #include <zed_mini_driver/zed_mini_driver.hpp>
 
 namespace ZEDMiniDriver
@@ -100,7 +98,7 @@ void ZEDMiniDriverNode::camera_routine()
 
       // Parse twist data (it's in body frame, so left camera frame)
       Header twist_header{};
-      twist_header.set__frame_id(link_namespace_ + "zedm_left_link");
+      twist_header.set__frame_id(link_namespace_ + "zedm_link");
       twist_header.stamp.set__sec(
         static_cast<int32_t>(camera_pose.timestamp.getNanoseconds() /
         uint64_t(1e9)));
@@ -159,7 +157,7 @@ void ZEDMiniDriverNode::camera_routine()
       // Build odometry messages
       Odometry camera_odom_msg{}, base_link_odom_msg{};
       camera_odom_msg.set__header(zed_pose.get_header());
-      camera_odom_msg.set__child_frame_id(link_namespace_ + "zedm_left_link");
+      camera_odom_msg.set__child_frame_id(link_namespace_ + "zedm_link");
       camera_odom_msg.set__pose(zed_pose.to_pose_with_covariance_stamped().pose);
       camera_odom_msg.set__twist(zed_twist.to_twist_with_covariance_stamped().twist);
       base_link_odom_msg.set__header(base_link_pose.get_header());
@@ -174,80 +172,15 @@ void ZEDMiniDriverNode::camera_routine()
       rviz_camera_odom_pub_->publish(camera_odom_msg);
 
       // Publish pose messages
-      rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_stamped());
-      rviz_camera_pose_pub_->publish(zed_pose.to_pose_stamped());
+      base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
+      camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
+      rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
+      rviz_camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
     }
   }
 
   // Close camera
   close_camera();
-}
-
-/**
- * @brief Listens for incoming TFs.
- */
-void ZEDMiniDriverNode::tf_thread_routine()
-{
-  // Initialize TF buffers and listeners
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-  tf_buffer_->setUsingDedicatedThread(true);
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-  std::string map_frame = "map";
-  std::string odom_frame = link_namespace_ + "odom";
-  std::string zedm_odom_frame = link_namespace_ + "zedm_odom";
-  odom_to_camera_odom_.header.set__frame_id(odom_frame);
-  odom_to_camera_odom_.set__child_frame_id(zedm_odom_frame);
-  map_to_camera_odom_.header.set__frame_id(map_frame);
-  map_to_camera_odom_.set__child_frame_id(zedm_odom_frame);
-  base_link_to_camera_.header.set__frame_id(link_namespace_ + "base_link");
-  base_link_to_camera_.set__child_frame_id(link_namespace_ + "zedm_left_link");
-  TransformStamped odom_to_camera_odom{}, map_to_camera_odom{};
-
-  // Start listening
-  while (tf_listening_.load(std::memory_order_acquire)) {
-    // odom -> zedm_odom, base_link -> zedm_left_link (it's rigid)
-    try {
-      odom_to_camera_odom = tf_buffer_->lookupTransform(
-        odom_frame,
-        zedm_odom_frame,
-        tf2::TimePointZero,
-        tf2::durationFromSec(1.0));
-
-      tf_lock_.lock();
-      odom_to_camera_odom_ = odom_to_camera_odom;
-      base_link_to_camera_ = odom_to_camera_odom;
-      base_link_to_camera_.header.set__frame_id(link_namespace_ + "base_link");
-      base_link_to_camera_.set__child_frame_id(link_namespace_ + "zedm_left_link");
-      tf_lock_.unlock();
-    } catch (const tf2::TimeoutException & e) {
-      NOOP;
-    } catch (const tf2::TransformException & e) {
-      RCLCPP_INFO(this->get_logger(), "TF exception: %s", e.what());
-    }
-
-    // map -> zedm_odom
-    try {
-      map_to_camera_odom = tf_buffer_->lookupTransform(
-        map_frame,
-        zedm_odom_frame,
-        tf2::TimePointZero,
-        tf2::durationFromSec(1.0));
-
-      tf_lock_.lock();
-      map_to_camera_odom_ = map_to_camera_odom;
-      tf_lock_.unlock();
-    } catch (const tf2::TimeoutException & e) {
-      NOOP;
-    } catch (const tf2::TransformException & e) {
-      RCLCPP_INFO(this->get_logger(), "TF exception: %s", e.what());
-    }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
-
-  // Stop listening
-  tf_listener_.reset();
-  tf_buffer_.reset();
 }
 
 } // namespace ZEDMiniDriver

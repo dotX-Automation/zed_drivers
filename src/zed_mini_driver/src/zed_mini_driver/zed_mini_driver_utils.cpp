@@ -148,6 +148,23 @@ bool ZEDMiniDriverNode::open_camera()
   right_info_.p[6] = right_info.cy;
   right_info_.p[10] = 1.0;
 
+  // Print IMU->Left camera transform
+  if (verbose_) {
+    sl::Transform imu_to_left = zed_info.sensors_configuration.camera_imu_transform;
+    std::cout << "IMU to Left Camera transform:" << std::endl;
+    std::cout << " - translation: [ "
+              << imu_to_left.getTranslation().tx << ", "
+              << imu_to_left.getTranslation().ty << ", "
+              << imu_to_left.getTranslation().tz
+              << " ] (X, Y, Z)" << std::endl;
+    std::cout << " - rotation: [ "
+              << imu_to_left.getOrientation().ow << ", "
+              << imu_to_left.getOrientation().ox << ", "
+              << imu_to_left.getOrientation().oy << ", "
+              << imu_to_left.getOrientation().oz
+              << " ] (q_w, q_x, q_y, q_z)" << std::endl;
+  }
+
   return true;
 }
 

@@ -45,7 +45,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <dua_interfaces/msg/point_cloud2_with_roi.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -82,26 +82,33 @@ private:
   void init_parameters();
   void init_publishers();
   void init_services();
+  void init_tf_listeners();
 
-  /* TF listeners, thread, and related data. */
+  /* TF listeners, timer, and related data. */
+  std::string map_frame_;
+  std::string odom_frame_;
+  std::string zedm_odom_frame_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::mutex tf_lock_;
   TransformStamped odom_to_camera_odom_{};
   TransformStamped base_link_to_camera_{};
   TransformStamped map_to_camera_odom_{};
-  std::thread tf_thread_;
-  void tf_thread_routine();
+  rclcpp::TimerBase::SharedPtr tf_timer_;
+  void tf_timer_callback();
 
   /* Topic publishers. */
   rclcpp::Publisher<Odometry>::SharedPtr base_link_odom_pub_;
+  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr base_link_pose_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr camera_odom_pub_;
+  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr camera_pose_pub_;
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
   rclcpp::Publisher<PointCloud2WithROI>::SharedPtr point_cloud_roi_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr rviz_base_link_odom_pub_;
-  rclcpp::Publisher<PoseStamped>::SharedPtr rviz_base_link_pose_pub_;
+  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_base_link_pose_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr rviz_camera_odom_pub_;
-  rclcpp::Publisher<PoseStamped>::SharedPtr rviz_camera_pose_pub_;
+  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_camera_pose_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_pub_;
 
   /* image_transport publishers. */
@@ -117,13 +124,9 @@ private:
     const SetBool::Request::SharedPtr req,
     const SetBool::Response::SharedPtr resp);
 
-  /* Synchronization primitives. */
-  std::mutex tf_lock_;
-
   /* Internal state and data. */
   sl::Camera zed_;
   std::atomic<bool> running_;
-  std::atomic<bool> tf_listening_;
   camera_info_manager::CameraInfo left_info_{};
   camera_info_manager::CameraInfo right_info_{};
 

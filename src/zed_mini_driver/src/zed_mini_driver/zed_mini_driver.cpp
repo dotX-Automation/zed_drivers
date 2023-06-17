@@ -24,9 +24,7 @@ ZEDMiniDriverNode::ZEDMiniDriverNode(const rclcpp::NodeOptions & opts)
   init_parameters();
   init_publishers();
   init_services();
-
-  // Start TF listener thread
-  tf_thread_ = std::thread(&ZEDMiniDriverNode::tf_thread_routine, this);
+  init_tf_listeners();
 
   RCLCPP_INFO(this->get_logger(), "Node initialized");
 }
@@ -47,10 +45,6 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
     camera_thread_.join();
   }
 
-  // Stop the TF listener thread
-  tf_listening_.store(false, std::memory_order_release);
-  tf_thread_.join();
-
   // Destroy image_transport publishers
   left_rect_pub_->shutdown();
   left_rect_pub_.reset();
@@ -58,6 +52,10 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
   right_rect_pub_.reset();
   depth_pub_->shutdown();
   depth_pub_.reset();
+
+  // Stop TF listeners
+  tf_listener_.reset();
+  tf_buffer_.reset();
 }
 
 /**
@@ -65,7 +63,6 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
  */
 void ZEDMiniDriverNode::init_atomics()
 {
-  tf_listening_.store(true, std::memory_order_release);
   running_.store(false, std::memory_order_release);
 }
 
@@ -79,9 +76,19 @@ void ZEDMiniDriverNode::init_publishers()
     "~/base_link_odom",
     DUAQoS::get_datum_qos(5));
 
+  // base_link_pose
+  base_link_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
+    "~/base_link_pose",
+    DUAQoS::get_datum_qos(5));
+
   // camera_odom
   camera_odom_pub_ = this->create_publisher<Odometry>(
     "~/camera_odom",
+    DUAQoS::get_datum_qos(5));
+
+  // camera_pose
+  camera_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
+    "~/camera_pose",
     DUAQoS::get_datum_qos(5));
 
   // imu
@@ -105,7 +112,7 @@ void ZEDMiniDriverNode::init_publishers()
     DUAQoS::Visualization::get_datum_qos(5));
 
   // rviz/base_link_pose
-  rviz_base_link_pose_pub_ = this->create_publisher<PoseStamped>(
+  rviz_base_link_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
     "~/rviz/base_link_pose",
     DUAQoS::Visualization::get_datum_qos(5));
 
@@ -115,7 +122,7 @@ void ZEDMiniDriverNode::init_publishers()
     DUAQoS::Visualization::get_datum_qos(5));
 
   // rviz/camera_pose
-  rviz_camera_pose_pub_ = this->create_publisher<PoseStamped>(
+  rviz_camera_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
     "~/rviz/camera_pose",
     DUAQoS::Visualization::get_datum_qos(5));
 
@@ -159,6 +166,34 @@ void ZEDMiniDriverNode::init_services()
       this,
       std::placeholders::_1,
       std::placeholders::_2));
+}
+
+/**
+ * @brief Initializes TF listeners and their timer.
+ */
+void ZEDMiniDriverNode::init_tf_listeners()
+{
+  // Initialize TF buffers and listeners
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+  // Initialize local data
+  map_frame_ = "map";
+  odom_frame_ = link_namespace_ + "odom";
+  zedm_odom_frame_ = link_namespace_ + "zedm_odom";
+  odom_to_camera_odom_.header.set__frame_id(odom_frame_);
+  odom_to_camera_odom_.set__child_frame_id(zedm_odom_frame_);
+  map_to_camera_odom_.header.set__frame_id(map_frame_);
+  map_to_camera_odom_.set__child_frame_id(zedm_odom_frame_);
+  base_link_to_camera_.header.set__frame_id(link_namespace_ + "base_link");
+  base_link_to_camera_.set__child_frame_id(link_namespace_ + "zedm_link");
+
+  // Initlaize TF timer
+  tf_timer_ = this->create_wall_timer(
+    std::chrono::seconds(1),
+    std::bind(
+      &ZEDMiniDriverNode::tf_timer_callback,
+      this));
 }
 
 } // namespace ZEDMiniDriver

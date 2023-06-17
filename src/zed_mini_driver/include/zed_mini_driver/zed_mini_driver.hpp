@@ -151,6 +151,8 @@ private:
   /* Auxiliary routines. */
   bool open_camera();
   void close_camera();
+  void positional_tracking(sl::Pose & camera_pose);
+  void sensor_sampling(sl::SensorsData & sensors_data);
   cv::Mat slMat2cvMat(sl::Mat & input);
   Image::SharedPtr frame_to_msg(cv::Mat & frame);
 };

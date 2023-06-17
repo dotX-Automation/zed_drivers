@@ -7,6 +7,8 @@
  * June 13, 2023
  */
 
+#include <cmath>
+
 #include <zed_mini_driver/zed_mini_driver.hpp>
 
 namespace ZEDMiniDriver
@@ -28,6 +30,7 @@ void ZEDMiniDriverNode::camera_routine()
   sl::ERROR_CODE err;
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
+  sl::SensorsData sensor_data;
   sl::RuntimeParameters runtime_params;
   runtime_params.measure3D_reference_frame = sl::REFERENCE_FRAME::WORLD;
   runtime_params.enable_depth = true;
@@ -68,119 +71,183 @@ void ZEDMiniDriverNode::camera_routine()
 
     // Publish positional tracking data
     if (camera_pose.valid) {
-      // Parse pose data
-      Header pose_header{};
-      pose_header.set__frame_id(link_namespace_ + "zedm_odom");
-      pose_header.stamp.set__sec(
-        static_cast<int32_t>(camera_pose.timestamp.getNanoseconds() /
-        uint64_t(1e9)));
-      pose_header.stamp.set__nanosec(
-        static_cast<uint32_t>(camera_pose.timestamp.getNanoseconds() %
-        uint64_t(1e9)));
-      Eigen::Vector3d position(
-        static_cast<double>(camera_pose.getTranslation().tx),
-        static_cast<double>(camera_pose.getTranslation().ty),
-        static_cast<double>(camera_pose.getTranslation().tz));
-      Eigen::Quaterniond orientation(
-        static_cast<double>(camera_pose.getOrientation().ow),
-        static_cast<double>(camera_pose.getOrientation().ox),
-        static_cast<double>(camera_pose.getOrientation().oy),
-        static_cast<double>(camera_pose.getOrientation().oz));
-      std::array<double, 36> pose_covariance{};
-      for (size_t i = 0; i < 36; i++) {
-        pose_covariance[i] = static_cast<double>(camera_pose.pose_covariance[i]);
-      }
-      PoseKit::Pose zed_pose(
-        position,
-        orientation,
-        pose_header,
-        pose_covariance);
+      positional_tracking(camera_pose);
+    }
 
-      // Parse twist data (it's in body frame, so left camera frame)
-      Header twist_header{};
-      twist_header.set__frame_id(link_namespace_ + "zedm_link");
-      twist_header.stamp.set__sec(
-        static_cast<int32_t>(camera_pose.timestamp.getNanoseconds() /
-        uint64_t(1e9)));
-      twist_header.stamp.set__nanosec(
-        static_cast<uint32_t>(camera_pose.timestamp.getNanoseconds() %
-        uint64_t(1e9)));
-      Eigen::Vector3d linear_velocity(
-        static_cast<double>(camera_pose.twist[0]),
-        static_cast<double>(camera_pose.twist[1]),
-        static_cast<double>(camera_pose.twist[2]));
-      Eigen::Vector3d angular_velocity(
-        static_cast<double>(camera_pose.twist[3]),
-        static_cast<double>(camera_pose.twist[4]),
-        static_cast<double>(camera_pose.twist[5]));
-      std::array<double, 36> twist_covariance{};
-      for (size_t i = 0; i < 36; i++) {
-        twist_covariance[i] = static_cast<double>(camera_pose.twist_covariance[i]);
-      }
-      PoseKit::KinematicPose zed_twist(
-        Eigen::Vector3d::Zero(),
-        Eigen::Quaterniond::Identity(),
-        linear_velocity,
-        angular_velocity,
-        twist_header,
-        std::array<double, 36>{},
-        twist_covariance);
-
-      // Get base_link pose
-      PoseKit::Pose base_link_pose = zed_pose;
-      try {
-        tf_lock_.lock();
-        base_link_pose.track_parent(odom_to_camera_odom_);
-        tf_lock_.unlock();
-      } catch (const std::exception & e) {
-        RCLCPP_ERROR(
-          this->get_logger(),
-          "ZEDMiniDriverNode::camera_routine: base_link_pose::track_parent: %s",
-          e.what());
-        tf_lock_.unlock();
-      }
-
-      // Get base_link twist
-      PoseKit::KinematicPose base_link_twist = zed_twist;
-      try {
-        tf_lock_.lock();
-        base_link_twist.track_parent(base_link_to_camera_);
-        tf_lock_.unlock();
-      } catch (const std::exception & e) {
-        RCLCPP_ERROR(
-          this->get_logger(),
-          "ZEDMiniDriverNode::camera_routine: base_link_twist::track_parent: %s",
-          e.what());
-        tf_lock_.unlock();
-      }
-
-      // Build odometry messages
-      Odometry camera_odom_msg{}, base_link_odom_msg{};
-      camera_odom_msg.set__header(zed_pose.get_header());
-      camera_odom_msg.set__child_frame_id(link_namespace_ + "zedm_link");
-      camera_odom_msg.set__pose(zed_pose.to_pose_with_covariance_stamped().pose);
-      camera_odom_msg.set__twist(zed_twist.to_twist_with_covariance_stamped().twist);
-      base_link_odom_msg.set__header(base_link_pose.get_header());
-      base_link_odom_msg.set__child_frame_id(link_namespace_ + "base_link");
-      base_link_odom_msg.set__pose(base_link_pose.to_pose_with_covariance_stamped().pose);
-      base_link_odom_msg.set__twist(base_link_twist.to_twist_with_covariance_stamped().twist);
-
-      // Publish odometry messages
-      base_link_odom_pub_->publish(base_link_odom_msg);
-      camera_odom_pub_->publish(camera_odom_msg);
-      rviz_base_link_odom_pub_->publish(base_link_odom_msg);
-      rviz_camera_odom_pub_->publish(camera_odom_msg);
-
-      // Publish pose messages
-      base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
-      camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
-      rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
-      rviz_camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
+    // Publish sensor data
+    if (zed_.getSensorsData(sensor_data, sl::TIME_REFERENCE::CURRENT) == sl::ERROR_CODE::SUCCESS) {
+      sensor_sampling(sensor_data);
     }
   }
 
   // Close camera
   close_camera();
+}
+
+/**
+ * @brief Processes positional tracking data.
+ *
+ * @param zed_pose ZED positional tracking data.
+ */
+void ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
+{
+  // Parse pose data
+  Header pose_header{};
+  pose_header.set__frame_id(link_namespace_ + "zedm_odom");
+  pose_header.stamp.set__sec(
+    static_cast<int32_t>(camera_pose.timestamp.getNanoseconds() /
+    uint64_t(1e9)));
+  pose_header.stamp.set__nanosec(
+    static_cast<uint32_t>(camera_pose.timestamp.getNanoseconds() %
+    uint64_t(1e9)));
+  Eigen::Vector3d position(
+    static_cast<double>(camera_pose.getTranslation().tx),
+    static_cast<double>(camera_pose.getTranslation().ty),
+    static_cast<double>(camera_pose.getTranslation().tz));
+  Eigen::Quaterniond orientation(
+    static_cast<double>(camera_pose.getOrientation().ow),
+    static_cast<double>(camera_pose.getOrientation().ox),
+    static_cast<double>(camera_pose.getOrientation().oy),
+    static_cast<double>(camera_pose.getOrientation().oz));
+  std::array<double, 36> pose_covariance{};
+  for (size_t i = 0; i < 36; i++) {
+    pose_covariance[i] = static_cast<double>(camera_pose.pose_covariance[i]);
+  }
+  PoseKit::Pose zed_pose(
+    position,
+    orientation,
+    pose_header,
+    pose_covariance);
+
+  // Parse twist data (it's in body frame, so left camera frame)
+  Header twist_header{};
+  twist_header.set__frame_id(link_namespace_ + "zedm_link");
+  twist_header.stamp.set__sec(
+    static_cast<int32_t>(camera_pose.timestamp.getSeconds()));
+  twist_header.stamp.set__nanosec(
+    static_cast<uint32_t>(camera_pose.timestamp.getNanoseconds() %
+    uint64_t(1e9)));
+  Eigen::Vector3d linear_velocity(
+    static_cast<double>(camera_pose.twist[0]),
+    static_cast<double>(camera_pose.twist[1]),
+    static_cast<double>(camera_pose.twist[2]));
+  Eigen::Vector3d angular_velocity(
+    static_cast<double>(camera_pose.twist[3]),
+    static_cast<double>(camera_pose.twist[4]),
+    static_cast<double>(camera_pose.twist[5]));
+  std::array<double, 36> twist_covariance{};
+  for (size_t i = 0; i < 36; i++) {
+    twist_covariance[i] = static_cast<double>(camera_pose.twist_covariance[i]);
+  }
+  PoseKit::KinematicPose zed_twist(
+    Eigen::Vector3d::Zero(),
+    Eigen::Quaterniond::Identity(),
+    linear_velocity,
+    angular_velocity,
+    twist_header,
+    std::array<double, 36>{},
+    twist_covariance);
+
+  // Get base_link pose
+  PoseKit::Pose base_link_pose = zed_pose;
+  try {
+    tf_lock_.lock();
+    base_link_pose.track_parent(odom_to_camera_odom_);
+    tf_lock_.unlock();
+  } catch (const std::exception & e) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "ZEDMiniDriverNode::camera_routine: base_link_pose::track_parent: %s",
+      e.what());
+    tf_lock_.unlock();
+  }
+
+  // Get base_link twist
+  PoseKit::KinematicPose base_link_twist = zed_twist;
+  try {
+    tf_lock_.lock();
+    base_link_twist.track_parent(base_link_to_camera_);
+    tf_lock_.unlock();
+  } catch (const std::exception & e) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "ZEDMiniDriverNode::camera_routine: base_link_twist::track_parent: %s",
+      e.what());
+    tf_lock_.unlock();
+  }
+
+  // Build odometry messages
+  Odometry camera_odom_msg{}, base_link_odom_msg{};
+  camera_odom_msg.set__header(zed_pose.get_header());
+  camera_odom_msg.set__child_frame_id(link_namespace_ + "zedm_link");
+  camera_odom_msg.set__pose(zed_pose.to_pose_with_covariance_stamped().pose);
+  camera_odom_msg.set__twist(zed_twist.to_twist_with_covariance_stamped().twist);
+  base_link_odom_msg.set__header(base_link_pose.get_header());
+  base_link_odom_msg.set__child_frame_id(link_namespace_ + "base_link");
+  base_link_odom_msg.set__pose(base_link_pose.to_pose_with_covariance_stamped().pose);
+  base_link_odom_msg.set__twist(base_link_twist.to_twist_with_covariance_stamped().twist);
+
+  // Publish odometry messages
+  base_link_odom_pub_->publish(base_link_odom_msg);
+  camera_odom_pub_->publish(camera_odom_msg);
+  rviz_base_link_odom_pub_->publish(base_link_odom_msg);
+  rviz_camera_odom_pub_->publish(camera_odom_msg);
+
+  // Publish pose messages
+  base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
+  camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
+  rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
+  rviz_camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
+}
+
+/**
+ * @brief Publishes onboard sensors data.
+ *
+ * @param sensors_data Sensors data.
+ */
+void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
+{
+  // Process IMU data
+  sl::SensorsData::IMUData imu_data = sensors_data.imu;
+  if (imu_data.is_available) {
+    Imu imu_msg{};
+    imu_msg.header.stamp.set__sec(static_cast<int32_t>(imu_data.timestamp.getSeconds()));
+    imu_msg.header.stamp.set__nanosec(
+      static_cast<uint32_t>(imu_data.timestamp.getNanoseconds() % uint64_t(1e9)));
+    imu_msg.header.set__frame_id(link_namespace_ + "zedm_imu_link");
+
+    imu_msg.orientation.set__w(static_cast<double>(imu_data.pose.getOrientation().ow));
+    imu_msg.orientation.set__x(static_cast<double>(imu_data.pose.getOrientation().ox));
+    imu_msg.orientation.set__y(static_cast<double>(imu_data.pose.getOrientation().oy));
+    imu_msg.orientation.set__z(static_cast<double>(imu_data.pose.getOrientation().oz));
+
+    for (int i = 0; i < 9; ++i) {
+      imu_msg.orientation_covariance[i] = static_cast<double>(imu_data.pose_covariance.r[i]);
+    }
+
+    imu_msg.angular_velocity.set__x(
+      static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.x));
+    imu_msg.angular_velocity.set__y(
+      static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.y));
+    imu_msg.angular_velocity.set__z(
+      static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.z));
+
+    for (int i = 0; i < 9; ++i) {
+      imu_msg.angular_velocity_covariance[i] =
+        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity_covariance.r[i]);
+    }
+
+    imu_msg.linear_acceleration.set__x(static_cast<double>(imu_data.linear_acceleration.x));
+    imu_msg.linear_acceleration.set__y(static_cast<double>(imu_data.linear_acceleration.y));
+    imu_msg.linear_acceleration.set__z(static_cast<double>(imu_data.linear_acceleration.z));
+
+    for (int i = 0; i < 9; ++i) {
+      imu_msg.linear_acceleration_covariance[i] =
+        static_cast<double>(imu_data.linear_acceleration_covariance.r[i]);
+    }
+
+    imu_pub_->publish(imu_msg);
+  }
 }
 
 } // namespace ZEDMiniDriver

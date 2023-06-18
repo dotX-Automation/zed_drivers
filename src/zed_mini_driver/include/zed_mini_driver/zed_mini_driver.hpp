@@ -20,6 +20,7 @@
 #include <thread>
 #include <vector>
 
+#include <Eigen/Dense>
 #include <Eigen/Geometry>
 
 #include <opencv2/core.hpp>
@@ -142,6 +143,7 @@ private:
   std::thread camera_thread_;
 
   /* Node parameters. */
+  bool autostart_;
   int64_t confidence_ = 50;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int fps_ = 15;

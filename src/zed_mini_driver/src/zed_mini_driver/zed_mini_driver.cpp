@@ -27,6 +27,14 @@ ZEDMiniDriverNode::ZEDMiniDriverNode(const rclcpp::NodeOptions & opts)
   init_tf_listeners();
 
   RCLCPP_INFO(this->get_logger(), "Node initialized");
+
+  // Start camera sampling thread, if requested
+  if (autostart_) {
+    running_.store(true, std::memory_order_release);
+    camera_thread_ = std::thread(
+      &ZEDMiniDriverNode::camera_routine,
+      this);
+  }
 }
 
 /**

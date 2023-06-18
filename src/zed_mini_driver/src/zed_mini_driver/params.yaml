@@ -3,6 +3,14 @@ namespace: ZEDMiniDriver
 node_class_name: ZEDMiniDriverNode
 
 params:
+  autostart:
+    type: bool
+    default_value: true
+    description: "Start the camera on node startup"
+    constraints: "Cannot be changed after node startup"
+    read_only: true
+    var_name: autostart_
+
   camera_settings_path:
     type: string
     default_value: ""

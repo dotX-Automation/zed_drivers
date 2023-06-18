@@ -11,6 +11,9 @@
 
 #include <zed_mini_driver/zed_mini_driver.hpp>
 
+#include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
+
 namespace ZEDMiniDriver
 {
 
@@ -94,8 +97,9 @@ void ZEDMiniDriverNode::camera_routine()
     }
 
     // Publish positional tracking data
+    PoseKit::Pose curr_pose{};
     if (camera_pose.valid) {
-      positional_tracking(camera_pose);
+      curr_pose = positional_tracking(camera_pose);
     }
 
     // Publish sensor data
@@ -187,23 +191,25 @@ void ZEDMiniDriverNode::camera_routine()
     }
 
     // Get and process depth data
-    err = zed_.retrieveImage(depth_map_view, sl::VIEW::DEPTH);
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_ERROR(
-        this->get_logger(),
-        "Failed to retrieve depth map: %s",
-        sl::toString(err).c_str());
-      continue;
+    if (camera_pose.valid) {
+      err = zed_.retrieveImage(depth_map_view, sl::VIEW::DEPTH);
+      if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "Failed to retrieve depth map: %s",
+          sl::toString(err).c_str());
+        continue;
+      }
+      err = zed_.retrieveMeasure(point_cloud, sl::MEASURE::XYZBGRA);
+      if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "Failed to retrieve point cloud: %s",
+          sl::toString(err).c_str());
+        continue;
+      }
+      depth_sampling(depth_map_view, point_cloud, curr_pose);
     }
-    err = zed_.retrieveMeasure(point_cloud, sl::MEASURE::XYZRGBA);
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_ERROR(
-        this->get_logger(),
-        "Failed to retrieve point cloud: %s",
-        sl::toString(err).c_str());
-      continue;
-    }
-    depth_sampling(depth_map_view, point_cloud);
   }
 
   // Close camera
@@ -214,8 +220,10 @@ void ZEDMiniDriverNode::camera_routine()
  * @brief Processes positional tracking data.
  *
  * @param zed_pose ZED positional tracking data.
+ *
+ * @return Current camera pose in zedm_odom frame.
  */
-void ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
+PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
 {
   // Parse pose data
   Header pose_header{};
@@ -324,6 +332,8 @@ void ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
   camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
   rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
   rviz_camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
+
+  return zed_pose;
 }
 
 /**
@@ -381,13 +391,17 @@ void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
  *
  * @param depth_map_view Depth map for visualization.
  * @param point_cloud Point cloud.
+ * @param curr_pose Current camera pose.
  */
-void ZEDMiniDriverNode::depth_sampling(sl::Mat & depth_map_view, sl::Mat & point_cloud)
+void ZEDMiniDriverNode::depth_sampling(
+  sl::Mat & depth_map_view,
+  sl::Mat & point_cloud,
+  PoseKit::Pose & curr_pose)
 {
   // Publish depth map image
   cv::Mat depth_map_view_cv = slMat2cvMatDepth(depth_map_view);
   Image::SharedPtr depth_msg = frame_to_msg(depth_map_view_cv);
-  depth_msg->header.set__frame_id(link_namespace_ + "zedm_link");
+  depth_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
   depth_msg->header.stamp.set__sec(static_cast<int32_t>(depth_map_view.timestamp.getSeconds()));
   depth_msg->header.stamp.set__nanosec(
     static_cast<uint32_t>(depth_map_view.timestamp.getNanoseconds() % uint64_t(1e9)));
@@ -395,6 +409,67 @@ void ZEDMiniDriverNode::depth_sampling(sl::Mat & depth_map_view, sl::Mat & point
   if (depth_pub_->getNumSubscribers()) {
     depth_pub_->publish(*depth_msg);
   }
+
+  // Get latest map -> zedm_odom transform, then compute map -> zedm_link
+  tf_lock_.lock();
+  Eigen::Isometry3d map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_);
+  tf_lock_.unlock();
+  Eigen::Isometry3d camera_odom_to_camera_iso = curr_pose.get_isometry();
+  Eigen::Isometry3d map_to_camera_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso;
+
+  // Fill and publish point cloud messages
+  PointCloud2 pc_msg{};
+  sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
+  pc_msg.header.set__frame_id("map");
+  pc_msg.header.stamp.set__sec(static_cast<int32_t>(point_cloud.timestamp.getSeconds()));
+  pc_msg.header.stamp.set__nanosec(
+    static_cast<uint32_t>(point_cloud.timestamp.getNanoseconds() % uint64_t(1e9)));
+  pc_msg.set__height(1);
+  pc_msg.set__width(static_cast<uint32_t>(point_cloud.getWidth() * point_cloud.getHeight()));
+  pc_msg.set__is_bigendian(false);
+  pc_msg.set__is_dense(true);
+  pc_modifier.setPointCloud2Fields(
+    4,
+    "x", 1, PointField::FLOAT32,
+    "y", 1, PointField::FLOAT32,
+    "z", 1, PointField::FLOAT32,
+    "rgba", 1, PointField::FLOAT32);
+  sensor_msgs::PointCloud2Iterator<float> iter_pc_x(pc_msg, "x");
+  sensor_msgs::PointCloud2Iterator<float> iter_pc_y(pc_msg, "y");
+  sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
+  sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
+  for (uint64_t i = 0; i < point_cloud.getHeight(); ++i) {
+    for (uint64_t j = 0; j < point_cloud.getWidth(); ++j) {
+      // Extract point position w.r.t. the camera from ZED data
+      sl::float4 point3D;
+      if (point_cloud.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
+        ++iter_pc_x;
+        ++iter_pc_y;
+        ++iter_pc_z;
+        ++iter_pc_rgba;
+        continue;
+      }
+      Eigen::Isometry3d point_iso = Eigen::Isometry3d::Identity();
+      point_iso.translation() = Eigen::Vector3d(point3D.x, point3D.y, point3D.z);
+
+      // Express point position w.r.t. the map
+      Eigen::Isometry3d point_map_iso = map_to_camera_iso * point_iso;
+
+      // Fill point cloud message
+      *iter_pc_x = static_cast<float>(point_map_iso.translation().x());
+      *iter_pc_y = static_cast<float>(point_map_iso.translation().y());
+      *iter_pc_z = static_cast<float>(point_map_iso.translation().z());
+      *iter_pc_rgba = static_cast<float>(point3D.w);
+
+      // Advance iterators
+      ++iter_pc_x;
+      ++iter_pc_y;
+      ++iter_pc_z;
+      ++iter_pc_rgba;
+    }
+  }
+  point_cloud_pub_->publish(pc_msg);
+  rviz_point_cloud_pub_->publish(pc_msg);
 }
 
-} // namespace ZEDMiniDriver
+}   // namespace ZEDMiniDriver

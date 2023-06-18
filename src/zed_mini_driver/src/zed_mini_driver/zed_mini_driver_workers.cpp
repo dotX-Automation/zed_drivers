@@ -51,6 +51,10 @@ void ZEDMiniDriverNode::camera_routine()
   cv::Mat right_frame_cv_bgr(left_frame_cv.size(), CV_8UC3);
   cv::Mat left_frame_cv_bgr_sd(left_frame_cv_sd.size(), CV_8UC3);
   cv::Mat right_frame_cv_bgr_sd(right_frame_cv_sd.size(), CV_8UC3);
+  Image::SharedPtr left_frame_msg;
+  Image::SharedPtr left_frame_msg_sd;
+  Image::SharedPtr right_frame_msg;
+  Image::SharedPtr right_frame_msg_sd;
 
   // Prepare depth sampling data
   sl::Mat depth_map_view;
@@ -107,86 +111,154 @@ void ZEDMiniDriverNode::camera_routine()
       sensor_sampling(sensor_data);
     }
 
-    // Retrieve frames
-    zed_.retrieveImage(left_frame, sl::VIEW::LEFT, sl::MEM::CPU, camera_res);
-    zed_.retrieveImage(right_frame, sl::VIEW::RIGHT, sl::MEM::CPU, camera_res);
-    zed_.retrieveImage(left_frame_sd, sl::VIEW::LEFT, sl::MEM::CPU, sd_res);
-    zed_.retrieveImage(right_frame_sd, sl::VIEW::RIGHT, sl::MEM::CPU, sd_res);
+    // Process and publish RGB frames
+    // This is the sequence, for each stream:
+    // - Retrieve frames
+    // - Convert frames to BGR8 in OpenCV
+    // - Allocate Image messages
+    // - Set Image messages headers and metadata
+    // - Stamp camera_infos
+    // - Publish images
 
-    // Convert frames to BGR8 in OpenCV
-    cv::cvtColor(left_frame_cv, left_frame_cv_bgr, cv::COLOR_BGRA2BGR);
-    cv::cvtColor(right_frame_cv, right_frame_cv_bgr, cv::COLOR_BGRA2BGR);
-    cv::cvtColor(left_frame_cv_sd, left_frame_cv_bgr_sd, cv::COLOR_BGRA2BGR);
-    cv::cvtColor(right_frame_cv_sd, right_frame_cv_bgr_sd, cv::COLOR_BGRA2BGR);
+    // Left streams
+    if (left_rect_pub_->getNumSubscribers() ||
+      left_rect_sd_pub_->getNumSubscribers() ||
+      left_stream_pub_->getNumSubscribers())
+    {
+      // HD streams
+      if (left_rect_pub_->getNumSubscribers() ||
+        (left_stream_pub_->getNumSubscribers() && stream_hd_))
+      {
+        zed_.retrieveImage(left_frame, sl::VIEW::LEFT, sl::MEM::CPU, camera_res);
 
-    // Allocate Image messages
-    Image::SharedPtr left_frame_msg = frame_to_msg(left_frame_cv_bgr);
-    Image::SharedPtr right_frame_msg = frame_to_msg(right_frame_cv_bgr);
-    Image::SharedPtr left_frame_msg_sd = frame_to_msg(left_frame_cv_bgr_sd);
-    Image::SharedPtr right_frame_msg_sd = frame_to_msg(right_frame_cv_bgr_sd);
+        cv::cvtColor(left_frame_cv, left_frame_cv_bgr, cv::COLOR_BGRA2BGR);
 
-    // Set Image messages headers and metadata
-    left_frame_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
-    left_frame_msg->header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
-    left_frame_msg->header.stamp.set__nanosec(
-      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    left_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
-    left_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_left_link");
-    left_frame_msg_sd->header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
-    left_frame_msg_sd->header.stamp.set__nanosec(
-      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    left_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
-    right_frame_msg->header.set__frame_id(link_namespace_ + "zedm_right_link");
-    right_frame_msg->header.stamp.set__sec(static_cast<int32_t>(right_frame.timestamp.getSeconds()));
-    right_frame_msg->header.stamp.set__nanosec(
-      static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    right_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
-    right_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_right_link");
-    right_frame_msg_sd->header.stamp.set__sec(
-      static_cast<int32_t>(right_frame.timestamp.getSeconds()));
-    right_frame_msg_sd->header.stamp.set__nanosec(
-      static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    right_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
+        left_frame_msg = frame_to_msg(left_frame_cv_bgr);
 
-    // Stamp camera_infos
-    left_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
-    left_info_.header.stamp.set__nanosec(
-      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    left_sd_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
-    left_sd_info_.header.stamp.set__nanosec(
-      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    right_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
-    right_info_.header.stamp.set__nanosec(
-      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
-    right_sd_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
-    right_sd_info_.header.stamp.set__nanosec(
-      static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+        left_frame_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
+        left_frame_msg->header.stamp.set__sec(
+          static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+        left_frame_msg->header.stamp.set__nanosec(
+          static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+        left_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
 
-    // Publish images
-    if (left_rect_pub_->getNumSubscribers()) {
-      left_rect_pub_->publish(*left_frame_msg, left_info_);
-    }
-    if (left_rect_sd_pub_->getNumSubscribers()) {
-      left_rect_sd_pub_->publish(*left_frame_msg_sd, left_sd_info_);
-    }
-    if (right_rect_pub_->getNumSubscribers()) {
-      right_rect_pub_->publish(*right_frame_msg, right_info_);
-    }
-    if (right_rect_sd_pub_->getNumSubscribers()) {
-      right_rect_sd_pub_->publish(*right_frame_msg_sd, right_sd_info_);
-    }
-    if (left_stream_pub_->getNumSubscribers()) {
-      if (stream_hd_) {
-        left_stream_pub_->publish(*left_frame_msg);
-      } else {
-        left_stream_pub_->publish(*left_frame_msg_sd);
+        left_info_.header.stamp.set__sec(static_cast<int32_t>(left_frame.timestamp.getSeconds()));
+        left_info_.header.stamp.set__nanosec(
+          static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+
+        // left_rect
+        if (left_rect_pub_->getNumSubscribers()) {
+          left_rect_pub_->publish(*left_frame_msg, left_info_);
+        }
+
+        // left_stream
+        if (left_stream_pub_->getNumSubscribers() && stream_hd_) {
+          left_stream_pub_->publish(*left_frame_msg);
+        }
+      }
+
+      // SD streams
+      if (left_rect_sd_pub_->getNumSubscribers() ||
+        (left_stream_pub_->getNumSubscribers() && !stream_hd_))
+      {
+        zed_.retrieveImage(left_frame_sd, sl::VIEW::LEFT, sl::MEM::CPU, sd_res);
+
+        cv::cvtColor(left_frame_cv_sd, left_frame_cv_bgr_sd, cv::COLOR_BGRA2BGR);
+
+        left_frame_msg_sd = frame_to_msg(left_frame_cv_bgr_sd);
+
+        left_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_left_link");
+        left_frame_msg_sd->header.stamp.set__sec(
+          static_cast<int32_t>(left_frame_sd.timestamp.getSeconds()));
+        left_frame_msg_sd->header.stamp.set__nanosec(
+          static_cast<uint32_t>(left_frame_sd.timestamp.getNanoseconds() % uint64_t(1e9)));
+        left_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
+
+        left_sd_info_.header.stamp.set__sec(
+          static_cast<int32_t>(left_frame_sd.timestamp.getSeconds()));
+        left_sd_info_.header.stamp.set__nanosec(
+          static_cast<uint32_t>(left_frame_sd.timestamp.getNanoseconds() % uint64_t(1e9)));
+
+        // left_rect_sd
+        if (left_rect_sd_pub_->getNumSubscribers()) {
+          left_rect_sd_pub_->publish(*left_frame_msg_sd, left_sd_info_);
+        }
+
+        // left_stream
+        if (left_stream_pub_->getNumSubscribers() && !stream_hd_) {
+          left_stream_pub_->publish(*left_frame_msg_sd);
+        }
       }
     }
-    if (right_stream_pub_->getNumSubscribers()) {
-      if (stream_hd_) {
-        right_stream_pub_->publish(*right_frame_msg);
-      } else {
-        right_stream_pub_->publish(*right_frame_msg_sd);
+
+    // Right streams
+    if (right_rect_pub_->getNumSubscribers() ||
+      right_rect_sd_pub_->getNumSubscribers() ||
+      right_stream_pub_->getNumSubscribers())
+    {
+      // HD streams
+      if (right_rect_pub_->getNumSubscribers() ||
+        (right_stream_pub_->getNumSubscribers() && stream_hd_))
+      {
+        zed_.retrieveImage(right_frame, sl::VIEW::RIGHT, sl::MEM::CPU, camera_res);
+
+        cv::cvtColor(right_frame_cv, right_frame_cv_bgr, cv::COLOR_BGRA2BGR);
+
+        right_frame_msg = frame_to_msg(right_frame_cv_bgr);
+
+        right_frame_msg->header.set__frame_id(link_namespace_ + "zedm_right_link");
+        right_frame_msg->header.stamp.set__sec(
+          static_cast<int32_t>(right_frame.timestamp.getSeconds()));
+        right_frame_msg->header.stamp.set__nanosec(
+          static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+        right_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
+
+        right_info_.header.stamp.set__sec(static_cast<int32_t>(right_frame.timestamp.getSeconds()));
+        right_info_.header.stamp.set__nanosec(
+          static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
+
+        // right_rect
+        if (right_rect_pub_->getNumSubscribers()) {
+          right_rect_pub_->publish(*right_frame_msg, right_info_);
+        }
+
+        // right_stream
+        if (right_stream_pub_->getNumSubscribers() && stream_hd_) {
+          right_stream_pub_->publish(*right_frame_msg);
+        }
+      }
+
+      // SD streams
+      if (right_rect_sd_pub_->getNumSubscribers() ||
+        (right_stream_pub_->getNumSubscribers() && !stream_hd_))
+      {
+        zed_.retrieveImage(right_frame_sd, sl::VIEW::RIGHT, sl::MEM::CPU, sd_res);
+
+        cv::cvtColor(right_frame_cv_sd, right_frame_cv_bgr_sd, cv::COLOR_BGRA2BGR);
+
+        right_frame_msg_sd = frame_to_msg(right_frame_cv_bgr_sd);
+
+        right_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_right_link");
+        right_frame_msg_sd->header.stamp.set__sec(
+          static_cast<int32_t>(right_frame_sd.timestamp.getSeconds()));
+        right_frame_msg_sd->header.stamp.set__nanosec(
+          static_cast<uint32_t>(right_frame_sd.timestamp.getNanoseconds() % uint64_t(1e9)));
+        right_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
+
+        right_sd_info_.header.stamp.set__sec(
+          static_cast<int32_t>(right_frame_sd.timestamp.getSeconds()));
+        right_sd_info_.header.stamp.set__nanosec(
+          static_cast<uint32_t>(right_frame_sd.timestamp.getNanoseconds() % uint64_t(1e9)));
+
+        // right_rect_sd
+        if (right_rect_sd_pub_->getNumSubscribers()) {
+          right_rect_sd_pub_->publish(*right_frame_msg_sd, right_sd_info_);
+        }
+
+        // right_stream
+        if (right_stream_pub_->getNumSubscribers() && !stream_hd_) {
+          right_stream_pub_->publish(*right_frame_msg_sd);
+        }
       }
     }
 
@@ -196,7 +268,7 @@ void ZEDMiniDriverNode::camera_routine()
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "Failed to retrieve depth map: %s",
+          "ZEDMiniDriverNode::camera_routine: Failed to retrieve depth map: %s",
           sl::toString(err).c_str());
         continue;
       }
@@ -204,7 +276,7 @@ void ZEDMiniDriverNode::camera_routine()
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "Failed to retrieve point cloud: %s",
+          "ZEDMiniDriverNode::camera_routine: Failed to retrieve point cloud: %s",
           sl::toString(err).c_str());
         continue;
       }

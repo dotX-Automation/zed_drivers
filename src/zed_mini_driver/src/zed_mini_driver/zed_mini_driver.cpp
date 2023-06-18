@@ -54,6 +54,8 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
   right_rect_pub_.reset();
   right_rect_sd_pub_->shutdown();
   right_rect_sd_pub_.reset();
+  left_stream_pub_.reset();
+  right_stream_pub_.reset();
   depth_pub_->shutdown();
   depth_pub_.reset();
 
@@ -162,6 +164,18 @@ void ZEDMiniDriverNode::init_publishers()
       this,
       "~/right/sd/image_rect_color",
       DUAQoS::get_image_qos().get_rmw_qos_profile()));
+
+  // left stream
+  left_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
+    this,
+    "~/left/image_rect_color",
+    DUAQoS::get_image_qos().get_rmw_qos_profile());
+
+  // right stream
+  right_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
+    this,
+    "~/right/image_rect_color",
+    DUAQoS::get_image_qos().get_rmw_qos_profile());
 
   // depth
   depth_pub_ = std::make_shared<image_transport::Publisher>(

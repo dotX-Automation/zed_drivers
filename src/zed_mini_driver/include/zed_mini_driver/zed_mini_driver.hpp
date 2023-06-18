@@ -39,6 +39,7 @@
 #include <camera_info_manager/camera_info_manager.hpp>
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <theora_wrappers/publisher.hpp>
 
 #include <tf2/exceptions.h>
 #include <tf2_ros/buffer.h>
@@ -116,6 +117,8 @@ private:
   std::shared_ptr<image_transport::CameraPublisher> right_rect_pub_;
   std::shared_ptr<image_transport::CameraPublisher> left_rect_sd_pub_;
   std::shared_ptr<image_transport::CameraPublisher> right_rect_sd_pub_;
+  std::shared_ptr<TheoraWrappers::Publisher> left_stream_pub_;
+  std::shared_ptr<TheoraWrappers::Publisher> right_stream_pub_;
   std::shared_ptr<image_transport::Publisher> depth_pub_;
 
   /* Service servers. */
@@ -146,6 +149,7 @@ private:
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   int64_t sd_width_;
   int64_t sd_height_;
+  bool stream_hd_ = false;
   int64_t texture_confidence_ = 100;
   bool verbose_ = false;
 

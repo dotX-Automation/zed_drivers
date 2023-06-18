@@ -118,6 +118,14 @@ params:
     constraints: "Must be a valid serial number, or -1 to open the first available camera"
     read_only: false
 
+  stream_hd:
+    type: bool
+    default_value: true
+    description: "Enables HD image streaming"
+    constraints: ""
+    read_only: false
+    var_name: stream_hd_
+
   texture_confidence:
     type: integer
     default_value: 100

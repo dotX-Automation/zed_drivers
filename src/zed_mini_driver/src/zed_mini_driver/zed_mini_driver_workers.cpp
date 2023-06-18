@@ -154,10 +154,32 @@ void ZEDMiniDriverNode::camera_routine()
       static_cast<uint32_t>(left_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
 
     // Publish images
-    left_rect_pub_->publish(*left_frame_msg, left_info_);
-    left_rect_sd_pub_->publish(*left_frame_msg_sd, left_sd_info_);
-    right_rect_pub_->publish(*right_frame_msg, right_info_);
-    right_rect_sd_pub_->publish(*right_frame_msg_sd, right_sd_info_);
+    if (left_rect_pub_->getNumSubscribers()) {
+      left_rect_pub_->publish(*left_frame_msg, left_info_);
+    }
+    if (left_rect_sd_pub_->getNumSubscribers()) {
+      left_rect_sd_pub_->publish(*left_frame_msg_sd, left_sd_info_);
+    }
+    if (right_rect_pub_->getNumSubscribers()) {
+      right_rect_pub_->publish(*right_frame_msg, right_info_);
+    }
+    if (right_rect_sd_pub_->getNumSubscribers()) {
+      right_rect_sd_pub_->publish(*right_frame_msg_sd, right_sd_info_);
+    }
+    if (left_stream_pub_->getNumSubscribers()) {
+      if (stream_hd_) {
+        left_stream_pub_->publish(*left_frame_msg);
+      } else {
+        left_stream_pub_->publish(*left_frame_msg_sd);
+      }
+    }
+    if (right_stream_pub_->getNumSubscribers()) {
+      if (stream_hd_) {
+        right_stream_pub_->publish(*right_frame_msg);
+      } else {
+        right_stream_pub_->publish(*right_frame_msg_sd);
+      }
+    }
   }
 
   // Close camera

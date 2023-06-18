@@ -49,6 +49,10 @@ void ZEDMiniDriverNode::camera_routine()
   cv::Mat left_frame_cv_bgr_sd(left_frame_cv_sd.size(), CV_8UC3);
   cv::Mat right_frame_cv_bgr_sd(right_frame_cv_sd.size(), CV_8UC3);
 
+  // Prepare depth sampling data
+  sl::Mat depth_map_view;
+  sl::Mat point_cloud;
+
   // Run until stopped
   sl::ERROR_CODE err;
   sl::RuntimeParameters runtime_params;
@@ -134,7 +138,8 @@ void ZEDMiniDriverNode::camera_routine()
       static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
     right_frame_msg->set__encoding(sensor_msgs::image_encodings::BGR8);
     right_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_right_link");
-    right_frame_msg_sd->header.stamp.set__sec(static_cast<int32_t>(right_frame.timestamp.getSeconds()));
+    right_frame_msg_sd->header.stamp.set__sec(
+      static_cast<int32_t>(right_frame.timestamp.getSeconds()));
     right_frame_msg_sd->header.stamp.set__nanosec(
       static_cast<uint32_t>(right_frame.timestamp.getNanoseconds() % uint64_t(1e9)));
     right_frame_msg_sd->set__encoding(sensor_msgs::image_encodings::BGR8);
@@ -180,6 +185,25 @@ void ZEDMiniDriverNode::camera_routine()
         right_stream_pub_->publish(*right_frame_msg_sd);
       }
     }
+
+    // Get and process depth data
+    err = zed_.retrieveImage(depth_map_view, sl::VIEW::DEPTH);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "Failed to retrieve depth map: %s",
+        sl::toString(err).c_str());
+      continue;
+    }
+    err = zed_.retrieveMeasure(point_cloud, sl::MEASURE::XYZRGBA);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "Failed to retrieve point cloud: %s",
+        sl::toString(err).c_str());
+      continue;
+    }
+    depth_sampling(depth_map_view, point_cloud);
   }
 
   // Close camera
@@ -349,6 +373,27 @@ void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
     }
 
     imu_pub_->publish(imu_msg);
+  }
+}
+
+/**
+ * @brief Processes depth data.
+ *
+ * @param depth_map_view Depth map for visualization.
+ * @param point_cloud Point cloud.
+ */
+void ZEDMiniDriverNode::depth_sampling(sl::Mat & depth_map_view, sl::Mat & point_cloud)
+{
+  // Publish depth map image
+  cv::Mat depth_map_view_cv = slMat2cvMatDepth(depth_map_view);
+  Image::SharedPtr depth_msg = frame_to_msg(depth_map_view_cv);
+  depth_msg->header.set__frame_id(link_namespace_ + "zedm_link");
+  depth_msg->header.stamp.set__sec(static_cast<int32_t>(depth_map_view.timestamp.getSeconds()));
+  depth_msg->header.stamp.set__nanosec(
+    static_cast<uint32_t>(depth_map_view.timestamp.getNanoseconds() % uint64_t(1e9)));
+  depth_msg->set__encoding(sensor_msgs::image_encodings::BGRA8);
+  if (depth_pub_->getNumSubscribers()) {
+    depth_pub_->publish(*depth_msg);
   }
 }
 

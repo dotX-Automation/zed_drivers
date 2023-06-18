@@ -168,7 +168,9 @@ private:
     double stereo_baseline = 0.0);
   void positional_tracking(sl::Pose & camera_pose);
   void sensor_sampling(sl::SensorsData & sensors_data);
+  void depth_sampling(sl::Mat & depth_map_view, sl::Mat & point_cloud);
   cv::Mat slMat2cvMat(sl::Mat & input);
+  cv::Mat slMat2cvMatDepth(sl::Mat & input);
   Image::SharedPtr frame_to_msg(cv::Mat & frame);
 };
 

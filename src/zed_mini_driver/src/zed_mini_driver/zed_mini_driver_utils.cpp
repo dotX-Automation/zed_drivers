@@ -203,6 +203,25 @@ cv::Mat ZEDMiniDriverNode::slMat2cvMat(sl::Mat & input)
 }
 
 /**
+ * @brief Conversion function between sl::Mat and cv::Mat for depth maps.
+ *
+ * @param slMat Original frame-holding data structure.
+ * @return OpenCV frame-holding data structure, pointing to the same data.
+ */
+cv::Mat ZEDMiniDriverNode::slMat2cvMatDepth(sl::Mat & input)
+{
+  // Since cv::Mat data requires a uchar* pointer, we get the uchar1 pointer
+  // from sl::Mat::getPtr<T>()
+  // cv::Mat and sl::Mat will share a single memory structure
+  return cv::Mat(
+    input.getHeight(),
+    input.getWidth(),
+    CV_8UC4,
+    input.getPtr<sl::uchar1>(sl::MEM::CPU),
+    input.getStepBytes(sl::MEM::CPU));
+}
+
+/**
  * @brief Initializes a CameraInfo message structure.
  *
  * @param camera_info CameraInfo message to initialize.

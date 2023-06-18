@@ -43,7 +43,7 @@ params:
 
   depth_mode:
     type: string
-    default_value: QUALITY
+    default_value: NEURAL
     description: "Depth mode"
     constraints: "Must be a valid depth mode for the ZED camera"
     read_only: false

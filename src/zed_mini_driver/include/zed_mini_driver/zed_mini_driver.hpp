@@ -138,6 +138,9 @@ private:
   camera_info_manager::CameraInfo right_info_{};
   camera_info_manager::CameraInfo right_sd_info_{};
 
+  /* Undersampling stopwatches. */
+  rclcpp::Time last_video_ts_;
+
   /* Camera sampling thread and routine. */
   void camera_routine();
   std::thread camera_thread_;
@@ -154,6 +157,7 @@ private:
   bool stream_hd_ = false;
   int64_t texture_confidence_ = 100;
   bool verbose_ = false;
+  int64_t video_rate_ = 15;
 
   /* Node parameters validators. */
   bool validate_depth_mode(const rclcpp::Parameter & p);

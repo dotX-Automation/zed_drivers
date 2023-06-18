@@ -15,7 +15,7 @@ params:
     type: string
     default_value: ""
     description: "Path to the ZED camera settings file"
-    constraints: "Must be a valid file path"
+    constraints: "Changes require camera restart, must be a valid file path"
     read_only: false
 
   confidence:
@@ -36,7 +36,7 @@ params:
     max_value: 20.0
     step: 0.0
     description: "Maximum depth distance [m]"
-    constraints: "Must be a valid maximum depth distance for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid maximum depth distance for the ZED camera"
     read_only: false
 
   depth_min_distance:
@@ -46,14 +46,14 @@ params:
     max_value: 1.0
     step: 0.0
     description: "Minimum depth distance [m]"
-    constraints: "Must be a valid minimum depth distance for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid minimum depth distance for the ZED camera"
     read_only: false
 
   depth_mode:
     type: string
     default_value: NEURAL
     description: "Depth mode"
-    constraints: "Must be a valid depth mode for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid depth mode for the ZED camera"
     read_only: false
     validator: validate_depth_mode
 
@@ -64,7 +64,7 @@ params:
     max_value: 100
     step: 1
     description: "Depth stabilization"
-    constraints: "Must be a valid depth stabilization value for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid depth stabilization value for the ZED camera"
     read_only: false
 
   fps:
@@ -74,7 +74,7 @@ params:
     max_value: 100
     step: 1
     description: "Frame rate of the camera"
-    constraints: "Must be a valid frame rate for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid frame rate for the ZED camera"
     read_only: false
     validator: validate_fps
 
@@ -90,7 +90,7 @@ params:
     type: string
     default_value: HD720
     description: "Camera resolution"
-    constraints: "Must be a valid resolution for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid resolution for the ZED camera"
     read_only: false
     validator: validate_resolution
 
@@ -130,7 +130,7 @@ params:
     type: bool
     default_value: true
     description: "Enables HD image streaming"
-    constraints: ""
+    constraints: "Changes might require stream restart if artifacts are present"
     read_only: false
     var_name: stream_hd_
 
@@ -152,3 +152,14 @@ params:
     constraints: ""
     read_only: false
     var_name: verbose_
+
+  video_rate:
+    type: integer
+    default_value: 0
+    min_value: 0
+    max_value: 60
+    step: 1
+    description: "Video streams publishing rate (for undersampling)"
+    constraints: "Changes require camera restart, 0 or >fps mean no undersampling"
+    read_only: false
+    var_name: video_rate_

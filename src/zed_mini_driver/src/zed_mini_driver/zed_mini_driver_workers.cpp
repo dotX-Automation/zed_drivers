@@ -532,6 +532,8 @@ void ZEDMiniDriverNode::depth_routine()
       Eigen::Isometry3d camera_odom_to_camera_iso = depth_curr_pose_.get_isometry();
       Eigen::Isometry3d map_to_camera_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso;
 
+      uint32_t pc_length = static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight());
+
       // Fill and publish point cloud messages
       PointCloud2 pc_msg{};
       sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
@@ -540,7 +542,7 @@ void ZEDMiniDriverNode::depth_routine()
       pc_msg.header.stamp.set__nanosec(
         static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
       pc_msg.set__height(1);
-      pc_msg.set__width(static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight()));
+      pc_msg.set__width(pc_length);
       pc_msg.set__is_bigendian(false);
       pc_msg.set__is_dense(true);
       pc_modifier.setPointCloud2Fields(
@@ -553,36 +555,46 @@ void ZEDMiniDriverNode::depth_routine()
       sensor_msgs::PointCloud2Iterator<float> iter_pc_y(pc_msg, "y");
       sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
       sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
+
+      // Fill point cloud matrix
+      Eigen::MatrixXd pc_mat(4, pc_length);
+      uint32_t mat_col_idx = 0;
       for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
         for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
           // Extract point position w.r.t. the camera from ZED data
           sl::float4 point3D;
           if (depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
-            ++iter_pc_x;
-            ++iter_pc_y;
-            ++iter_pc_z;
-            ++iter_pc_rgba;
+            pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4d::Zero();
             continue;
           }
-          Eigen::Isometry3d point_iso = Eigen::Isometry3d::Identity();
-          point_iso.translation() = Eigen::Vector3d(point3D.x, point3D.y, point3D.z);
+          pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4d(
+            static_cast<double>(point3D.x),
+            static_cast<double>(point3D.y),
+            static_cast<double>(point3D.z),
+            1.0);
+          mat_col_idx++;
 
-          // Express point position w.r.t. the map
-          Eigen::Isometry3d point_map_iso = map_to_camera_iso * point_iso;
-
-          // Fill point cloud message
-          *iter_pc_x = static_cast<float>(point_map_iso.translation().x());
-          *iter_pc_y = static_cast<float>(point_map_iso.translation().y());
-          *iter_pc_z = static_cast<float>(point_map_iso.translation().z());
+          // Write color information
           *iter_pc_rgba = static_cast<float>(point3D.w);
-
-          // Advance iterators
-          ++iter_pc_x;
-          ++iter_pc_y;
-          ++iter_pc_z;
           ++iter_pc_rgba;
         }
       }
+
+      // Express point cloud in map frame
+      pc_mat = map_to_camera_iso.matrix() * pc_mat;
+
+      // Fill point cloud messages
+      for (uint32_t i = 0; i < pc_length; ++i) {
+        *iter_pc_x = static_cast<float>(pc_mat(0, i));
+        *iter_pc_y = static_cast<float>(pc_mat(1, i));
+        *iter_pc_z = static_cast<float>(pc_mat(2, i));
+
+        // Advance iterators
+        ++iter_pc_x;
+        ++iter_pc_y;
+        ++iter_pc_z;
+      }
+
       point_cloud_pub_->publish(pc_msg);
       rviz_point_cloud_pub_->publish(pc_msg);
 

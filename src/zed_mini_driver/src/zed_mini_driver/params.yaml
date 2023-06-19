@@ -51,7 +51,7 @@ params:
 
   depth_rate:
     type: integer
-    default_value: 10
+    default_value: 5
     min_value: 0
     max_value: 100
     step: 1
@@ -77,6 +77,16 @@ params:
     description: "Depth stabilization"
     constraints: "Changes require camera restart, must be a valid depth stabilization value for the ZED camera"
     read_only: false
+
+  eigen_max_cores:
+    type: integer
+    default_value: 4
+    min_value: 0
+    max_value: 16
+    step: 1
+    description: "Maximum number of cores to use for Eigen library"
+    constraints: "Changes require full restart, 0 means no change, must be a valid number of cores depending on the system, pay attention to set this to the same amount if you load this node with others that do the same"
+    read_only: true
 
   fps:
     type: integer

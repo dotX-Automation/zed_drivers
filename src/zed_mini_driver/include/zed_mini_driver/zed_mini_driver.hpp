@@ -24,6 +24,7 @@
 #include <semaphore.h>
 #include <time.h>
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 

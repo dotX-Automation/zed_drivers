@@ -27,6 +27,15 @@ ZEDMiniDriverNode::ZEDMiniDriverNode(const rclcpp::NodeOptions & opts)
   init_services();
   init_tf_listeners();
 
+  // Initialize Eigen library
+  int64_t eigen_cores = this->get_parameter("eigen_max_cores").as_int();
+  if (eigen_cores > 0) {
+    Eigen::setNbThreads(eigen_cores);
+    if (verbose_) {
+      std::cout << "Eigen::nbThreads(): " << Eigen::nbThreads() << std::endl;
+    }
+  }
+
   RCLCPP_INFO(this->get_logger(), "Node initialized");
 
   // Start camera sampling thread, if requested

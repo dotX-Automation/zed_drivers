@@ -530,7 +530,8 @@ void ZEDMiniDriverNode::depth_routine()
       Eigen::Isometry3d map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_);
       tf_lock_.unlock();
       Eigen::Isometry3d camera_odom_to_camera_iso = depth_curr_pose_.get_isometry();
-      Eigen::Isometry3d map_to_camera_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso;
+      Eigen::Isometry3f map_to_camera_iso =
+        Eigen::Isometry3d(map_to_camera_odom_iso * camera_odom_to_camera_iso).cast<float>();
 
       uint32_t pc_length = static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight());
 
@@ -557,25 +558,25 @@ void ZEDMiniDriverNode::depth_routine()
       sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
 
       // Fill point cloud matrix
-      Eigen::MatrixXd pc_mat(4, pc_length);
+      Eigen::MatrixXf pc_mat(4, pc_length);
       uint32_t mat_col_idx = 0;
       for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
         for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
           // Extract point position w.r.t. the camera from ZED data
           sl::float4 point3D;
           if (depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
-            pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4d::Zero();
+            pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4f::Zero();
             continue;
           }
-          pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4d(
-            static_cast<double>(point3D.x),
-            static_cast<double>(point3D.y),
-            static_cast<double>(point3D.z),
-            1.0);
+          pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4f(
+            point3D.x,
+            point3D.y,
+            point3D.z,
+            1.0f);
           mat_col_idx++;
 
           // Write color information
-          *iter_pc_rgba = static_cast<float>(point3D.w);
+          *iter_pc_rgba = point3D.w;
           ++iter_pc_rgba;
         }
       }
@@ -585,9 +586,9 @@ void ZEDMiniDriverNode::depth_routine()
 
       // Fill point cloud messages
       for (uint32_t i = 0; i < pc_length; ++i) {
-        *iter_pc_x = static_cast<float>(pc_mat(0, i));
-        *iter_pc_y = static_cast<float>(pc_mat(1, i));
-        *iter_pc_z = static_cast<float>(pc_mat(2, i));
+        *iter_pc_x = pc_mat(0, i);
+        *iter_pc_y = pc_mat(1, i);
+        *iter_pc_z = pc_mat(2, i);
 
         // Advance iterators
         ++iter_pc_x;

@@ -16,6 +16,7 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # Unusually, we want to disable some warnings because of misshaps in the ZED SDK
   add_compile_options(
+    -fopenmp
     -Wall
     -Wextra
     -Wno-deprecated-copy

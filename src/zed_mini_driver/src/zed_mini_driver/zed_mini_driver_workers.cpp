@@ -527,7 +527,8 @@ void ZEDMiniDriverNode::depth_routine()
 
       // Get latest map -> zedm_odom transform
       tf_lock_.lock();
-      Eigen::Isometry3f map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_).cast<float>();
+      Eigen::Isometry3f map_to_camera_odom_iso =
+        tf2::transformToEigen(map_to_camera_odom_).cast<float>();
       tf_lock_.unlock();
       Eigen::Isometry3f camera_odom_to_camera_iso = depth_curr_pose_.get_isometry().cast<float>();
 
@@ -620,7 +621,7 @@ void ZEDMiniDriverNode::depth_routine()
       pc_msg.set__is_bigendian(false);
       pc_roi_msg.set__is_bigendian(false);
       pc_msg.set__is_dense(true);
-      pc_roi_msg.set__is_dense(false);
+      pc_roi_msg.set__is_dense(true);
       pc_modifier.setPointCloud2Fields(
         4,
         "x", 1, PointField::FLOAT32,
@@ -651,7 +652,9 @@ void ZEDMiniDriverNode::depth_routine()
           // Extract point position w.r.t. the camera from ZED data
           sl::float4 point3D;
           if (depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
-            pc_mat.block<7, 1>(0, mat_col_idx) = Eigen::VectorXf::Zero(7);
+            continue;
+          }
+          if (std::isnan(point3D.x) || std::isnan(point3D.y) || std::isnan(point3D.z)) {
             continue;
           }
           Eigen::Vector3f Qc(
@@ -666,12 +669,16 @@ void ZEDMiniDriverNode::depth_routine()
           mat_col_idx++;
         }
       }
+      uint32_t valid_points = mat_col_idx;
+      pc_colors.resize(valid_points);
+      pc_mat.resize(7, valid_points);
 
       // Express point cloud in map frame
       pc_mat = pc_transform * pc_mat;
 
       // Fill point cloud messages
-      for (uint32_t i = 0; i < pc_length; ++i) {
+      uint32_t pc_roi_length = 0;
+      for (uint32_t i = 0; i < valid_points; ++i) {
         // Fill complete point cloud message
         *iter_pc_x = pc_mat(0, i);
         *iter_pc_y = pc_mat(1, i);
@@ -690,11 +697,14 @@ void ZEDMiniDriverNode::depth_routine()
           *iter_pc_roi_y = pc_mat(1, i);
           *iter_pc_roi_z = pc_mat(2, i);
           *iter_pc_roi_rgba = pc_colors[i];
-        } else {
-          *iter_pc_roi_x = NAN;
-          *iter_pc_roi_y = NAN;
-          *iter_pc_roi_z = NAN;
-          *iter_pc_roi_rgba = NAN;
+
+          pc_roi_length++;
+
+          // Advance iterators
+          ++iter_pc_roi_x;
+          ++iter_pc_roi_y;
+          ++iter_pc_roi_z;
+          ++iter_pc_roi_rgba;
         }
 
         // Advance iterators
@@ -702,11 +712,9 @@ void ZEDMiniDriverNode::depth_routine()
         ++iter_pc_y;
         ++iter_pc_z;
         ++iter_pc_rgba;
-        ++iter_pc_roi_x;
-        ++iter_pc_roi_y;
-        ++iter_pc_roi_z;
-        ++iter_pc_roi_rgba;
       }
+      pc_modifier.resize(valid_points);
+      pc_roi_modifier.resize(pc_roi_length);
       pc_with_roi_msg.cloud = pc_roi_msg;
 
       point_cloud_pub_->publish(pc_msg);

@@ -118,6 +118,7 @@ private:
   rclcpp::Publisher<Odometry>::SharedPtr rviz_camera_odom_pub_;
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_camera_pose_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_pub_;
+  rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_roi_pub_;
 
   /* image_transport publishers. */
   std::shared_ptr<image_transport::CameraPublisher> left_rect_pub_;
@@ -169,6 +170,7 @@ private:
   int fps_ = 15;
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
+  std::vector<double> roi_box_sizes_;
   int64_t sd_width_;
   int64_t sd_height_;
   bool stream_hd_ = false;

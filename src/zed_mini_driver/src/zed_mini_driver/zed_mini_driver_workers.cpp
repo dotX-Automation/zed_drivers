@@ -525,28 +525,109 @@ void ZEDMiniDriverNode::depth_routine()
         depth_pub_->publish(*depth_msg);
       }
 
-      // Get latest map -> zedm_odom transform, then compute map -> zedm_link
+      // Get latest map -> zedm_odom transform
       tf_lock_.lock();
-      Eigen::Isometry3d map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_);
+      Eigen::Isometry3f map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_).cast<float>();
       tf_lock_.unlock();
-      Eigen::Isometry3d camera_odom_to_camera_iso = depth_curr_pose_.get_isometry();
-      Eigen::Isometry3f map_to_camera_iso =
-        Eigen::Isometry3d(map_to_camera_odom_iso * camera_odom_to_camera_iso).cast<float>();
+      Eigen::Isometry3f camera_odom_to_camera_iso = depth_curr_pose_.get_isometry().cast<float>();
 
-      uint32_t pc_length = static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight());
+      // Get ROI box sizes and corner points
+      Eigen::Vector4f p0_om(
+        0.0f,
+        static_cast<float>(-roi_box_sizes_[1] / 2.0),
+        static_cast<float>(-roi_box_sizes_[2] / 2.0),
+        1.0f);
+      Eigen::Vector4f p1_om(
+        static_cast<float>(roi_box_sizes_[0]),
+        static_cast<float>(-roi_box_sizes_[1] / 2.0),
+        static_cast<float>(-roi_box_sizes_[2] / 2.0),
+        1.0f);
+      Eigen::Vector4f p2_om(
+        0.0f,
+        static_cast<float>(roi_box_sizes_[1] / 2.0),
+        static_cast<float>(-roi_box_sizes_[2] / 2.0),
+        1.0f);
+      Eigen::Vector4f p3_om(
+        0.0f,
+        static_cast<float>(-roi_box_sizes_[1] / 2.0),
+        static_cast<float>(roi_box_sizes_[2] / 2.0),
+        1.0f);
+      // Bring them in camera_odom frame
+      p0_om = camera_odom_to_camera_iso * p0_om;
+      p1_om = camera_odom_to_camera_iso * p1_om;
+      p2_om = camera_odom_to_camera_iso * p2_om;
+      p3_om = camera_odom_to_camera_iso * p3_om;
+      // Extract 3D vectors
+      Eigen::Vector3f p0 = p0_om.head<3>();
+      Eigen::Vector3f p1 = p1_om.head<3>();
+      Eigen::Vector3f p2 = p2_om.head<3>();
+      Eigen::Vector3f p3 = p3_om.head<3>();
+
+      // Compute ROI evaluation vectors
+      Eigen::Vector3f ic = p1 - p0;
+      Eigen::Vector3f jc = p2 - p0;
+      Eigen::Vector3f kc = p3 - p0;
+      float iti = ic.transpose() * ic;
+      float jtj = jc.transpose() * jc;
+      float ktk = kc.transpose() * kc;
+
+      // Compute PC+ROI transformation matrix
+      uint32_t pc_length =
+        static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight());
+      Eigen::MatrixXf pc_transform = Eigen::MatrixXf::Zero(7, 7);
+      pc_transform.block<4, 4>(0, 0) = map_to_camera_odom_iso.matrix();
+      pc_transform.block<1, 3>(4, 4) = ic.transpose();
+      pc_transform.block<1, 3>(5, 4) = jc.transpose();
+      pc_transform.block<1, 3>(6, 4) = kc.transpose();
 
       // Fill and publish point cloud messages
       PointCloud2 pc_msg{};
+      PointCloud2 pc_roi_msg{};
+      PointCloud2WithROI pc_with_roi_msg{};
+      std::array<Eigen::Vector4f, 4> roi_corners_map = {
+        map_to_camera_odom_iso * p0_om,
+        map_to_camera_odom_iso * p1_om,
+        map_to_camera_odom_iso * p2_om,
+        map_to_camera_odom_iso * p3_om};
+      pc_with_roi_msg.set__culled(true);
+      pc_with_roi_msg.roi.set__type(dua_interfaces::msg::RegionOfInterest::BOX);
+      for (int i = 0; i < 4; ++i) {
+        pc_with_roi_msg.roi.box_corners[i].header.set__frame_id("map");
+        pc_with_roi_msg.roi.box_corners[i].header.stamp.set__sec(
+          static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
+        pc_with_roi_msg.roi.box_corners[i].header.stamp.set__nanosec(
+          static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
+
+        pc_with_roi_msg.roi.box_corners[i].point.set__x(roi_corners_map[i].x());
+        pc_with_roi_msg.roi.box_corners[i].point.set__y(roi_corners_map[i].y());
+        pc_with_roi_msg.roi.box_corners[i].point.set__z(roi_corners_map[i].z());
+      }
       sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
+      sensor_msgs::PointCloud2Modifier pc_roi_modifier(pc_roi_msg);
       pc_msg.header.set__frame_id("map");
+      pc_roi_msg.header.set__frame_id("map");
       pc_msg.header.stamp.set__sec(static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
       pc_msg.header.stamp.set__nanosec(
         static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
+      pc_roi_msg.header.stamp.set__sec(
+        static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
+      pc_roi_msg.header.stamp.set__nanosec(
+        static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
       pc_msg.set__height(1);
+      pc_roi_msg.set__height(1);
       pc_msg.set__width(pc_length);
+      pc_roi_msg.set__width(pc_length);
       pc_msg.set__is_bigendian(false);
+      pc_roi_msg.set__is_bigendian(false);
       pc_msg.set__is_dense(true);
+      pc_roi_msg.set__is_dense(false);
       pc_modifier.setPointCloud2Fields(
+        4,
+        "x", 1, PointField::FLOAT32,
+        "y", 1, PointField::FLOAT32,
+        "z", 1, PointField::FLOAT32,
+        "rgba", 1, PointField::FLOAT32);
+      pc_roi_modifier.setPointCloud2Fields(
         4,
         "x", 1, PointField::FLOAT32,
         "y", 1, PointField::FLOAT32,
@@ -556,48 +637,82 @@ void ZEDMiniDriverNode::depth_routine()
       sensor_msgs::PointCloud2Iterator<float> iter_pc_y(pc_msg, "y");
       sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
       sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_roi_x(pc_roi_msg, "x");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_roi_y(pc_roi_msg, "y");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_roi_z(pc_roi_msg, "z");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_roi_rgba(pc_roi_msg, "rgba");
 
-      // Fill point cloud matrix
-      Eigen::MatrixXf pc_mat(4, pc_length);
+      // Fill point cloud matrix and color vector
+      Eigen::MatrixXf pc_mat = Eigen::MatrixXf::Zero(7, pc_length);
+      std::vector<float> pc_colors(pc_length);
       uint32_t mat_col_idx = 0;
       for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
         for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
           // Extract point position w.r.t. the camera from ZED data
           sl::float4 point3D;
           if (depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
-            pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4f::Zero();
+            pc_mat.block<7, 1>(0, mat_col_idx) = Eigen::VectorXf::Zero(7);
             continue;
           }
-          pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4f(
+          Eigen::Vector3f Qc(
             point3D.x,
             point3D.y,
-            point3D.z,
-            1.0f);
-          mat_col_idx++;
+            point3D.z);
+          Eigen::Vector3f qc = Qc - p0;
+          pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4f(Qc.x(), Qc.y(), Qc.z(), 1.0f);
+          pc_mat.block<3, 1>(4, mat_col_idx) = qc;
+          pc_colors[mat_col_idx] = point3D.w;
 
-          // Write color information
-          *iter_pc_rgba = point3D.w;
-          ++iter_pc_rgba;
+          mat_col_idx++;
         }
       }
 
       // Express point cloud in map frame
-      pc_mat = map_to_camera_iso.matrix() * pc_mat;
+      pc_mat = pc_transform * pc_mat;
 
       // Fill point cloud messages
       for (uint32_t i = 0; i < pc_length; ++i) {
+        // Fill complete point cloud message
         *iter_pc_x = pc_mat(0, i);
         *iter_pc_y = pc_mat(1, i);
         *iter_pc_z = pc_mat(2, i);
+        *iter_pc_rgba = pc_colors[i];
+
+        // Check if point is in ROI, and add it in case
+        float itq = pc_mat(4, i);
+        float jtq = pc_mat(5, i);
+        float ktq = pc_mat(6, i);
+        if ((0 < itq) && (itq < iti) &&
+          (0 < jtq) && (jtq < jtj) &&
+          (0 < ktq) && (ktq < ktk))
+        {
+          *iter_pc_roi_x = pc_mat(0, i);
+          *iter_pc_roi_y = pc_mat(1, i);
+          *iter_pc_roi_z = pc_mat(2, i);
+          *iter_pc_roi_rgba = pc_colors[i];
+        } else {
+          *iter_pc_roi_x = NAN;
+          *iter_pc_roi_y = NAN;
+          *iter_pc_roi_z = NAN;
+          *iter_pc_roi_rgba = NAN;
+        }
 
         // Advance iterators
         ++iter_pc_x;
         ++iter_pc_y;
         ++iter_pc_z;
+        ++iter_pc_rgba;
+        ++iter_pc_roi_x;
+        ++iter_pc_roi_y;
+        ++iter_pc_roi_z;
+        ++iter_pc_roi_rgba;
       }
+      pc_with_roi_msg.cloud = pc_roi_msg;
 
       point_cloud_pub_->publish(pc_msg);
+      point_cloud_roi_pub_->publish(pc_with_roi_msg);
       rviz_point_cloud_pub_->publish(pc_msg);
+      rviz_point_cloud_roi_pub_->publish(pc_roi_msg);
 
       sem_post(&depth_sem_1_);
     }

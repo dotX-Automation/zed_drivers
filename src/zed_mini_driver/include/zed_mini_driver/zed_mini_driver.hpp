@@ -60,6 +60,8 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/header.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include <std_srvs/srv/set_bool.hpp>
 
@@ -68,6 +70,7 @@ using namespace geometry_msgs::msg;
 using namespace nav_msgs::msg;
 using namespace sensor_msgs::msg;
 using namespace std_msgs::msg;
+using namespace visualization_msgs::msg;
 
 using namespace std_srvs::srv;
 
@@ -119,6 +122,7 @@ private:
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_camera_pose_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_roi_pub_;
+  rclcpp::Publisher<MarkerArray>::SharedPtr rviz_roi_pub_;
 
   /* image_transport publishers. */
   std::shared_ptr<image_transport::CameraPublisher> left_rect_pub_;

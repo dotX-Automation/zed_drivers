@@ -50,6 +50,7 @@ find_package(theora_wrappers REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Threads REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(ZED 4 REQUIRED)
 
 # Generate parameters source code
@@ -100,7 +101,8 @@ ament_target_dependencies(zed_mini_driver
   std_srvs
   theora_wrappers
   tf2
-  tf2_ros)
+  tf2_ros
+  visualization_msgs)
 rclcpp_components_register_nodes(zed_mini_driver "ZEDMiniDriver::ZEDMiniDriverNode")
 
 # ZED Mini Driver standalone application

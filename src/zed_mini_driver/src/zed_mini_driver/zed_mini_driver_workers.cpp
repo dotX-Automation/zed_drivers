@@ -582,8 +582,7 @@ void ZEDMiniDriverNode::depth_routine()
       pc_transform.block<1, 3>(6, 4) = kc.transpose();
 
       // Fill and publish point cloud messages
-      PointCloud2 pc_msg{};
-      PointCloud2 pc_roi_msg{};
+      PointCloud2 pc_msg{}, pc_roi_msg{};
       PointCloud2WithROI pc_with_roi_msg{};
       std::array<Eigen::Vector4f, 4> roi_corners_map = {
         map_to_camera_odom_iso * p0_om,
@@ -721,6 +720,42 @@ void ZEDMiniDriverNode::depth_routine()
       point_cloud_roi_pub_->publish(pc_with_roi_msg);
       rviz_point_cloud_pub_->publish(pc_msg);
       rviz_point_cloud_roi_pub_->publish(pc_roi_msg);
+
+      // Compute ROI box center in map frame
+      Eigen::Isometry3f roi_center_iso = Eigen::Isometry3f::Identity();
+      roi_center_iso.pretranslate(Eigen::Vector3f(roi_box_sizes_[0] / 2.0f, 0.0f, 0.0f));
+      roi_center_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso * roi_center_iso;
+      Eigen::Quaternionf roi_center_orientation(roi_center_iso.rotation());
+
+      // Publish the current ROI for visualization
+      Marker cleanup_marker{}, roi_marker{};
+      MarkerArray roi_markers{};
+      cleanup_marker.header.set__frame_id("map");
+      cleanup_marker.header.stamp = pc_msg.header.stamp;
+      cleanup_marker.set__action(Marker::DELETEALL);
+      roi_marker.header.set__frame_id("map");
+      roi_marker.header.stamp = pc_msg.header.stamp;
+      roi_marker.set__ns("zed_mini_driver");
+      roi_marker.set__id(0);
+      roi_marker.set__type(Marker::CUBE);
+      roi_marker.set__action(Marker::ADD);
+      roi_marker.pose.position.set__x(roi_center_iso.translation().x());
+      roi_marker.pose.position.set__y(roi_center_iso.translation().y());
+      roi_marker.pose.position.set__z(roi_center_iso.translation().z());
+      roi_marker.pose.orientation.set__w(roi_center_orientation.w());
+      roi_marker.pose.orientation.set__x(roi_center_orientation.x());
+      roi_marker.pose.orientation.set__y(roi_center_orientation.y());
+      roi_marker.pose.orientation.set__z(roi_center_orientation.z());
+      roi_marker.scale.set__x(roi_box_sizes_[0]);
+      roi_marker.scale.set__y(roi_box_sizes_[1]);
+      roi_marker.scale.set__z(roi_box_sizes_[2]);
+      roi_marker.color.set__r(1.0f);
+      roi_marker.color.set__g(1.0f);
+      roi_marker.color.set__b(0.0f);
+      roi_marker.color.set__a(0.1f);
+      roi_markers.markers.push_back(cleanup_marker);
+      roi_markers.markers.push_back(roi_marker);
+      rviz_roi_pub_->publish(roi_markers);
 
       sem_post(&depth_sem_1_);
     }

@@ -184,6 +184,11 @@ void ZEDMiniDriverNode::init_publishers()
     "~/rviz/point_cloud_roi",
     DUAQoS::Visualization::get_scan_qos(1));
 
+  // rviz/roi
+  rviz_roi_pub_ = this->create_publisher<MarkerArray>(
+    "~/rviz/roi",
+    DUAQoS::Visualization::get_datum_qos(1));
+
   // left/image_rect_color
   left_rect_pub_ = std::make_shared<image_transport::CameraPublisher>(
     image_transport::create_camera_publisher(

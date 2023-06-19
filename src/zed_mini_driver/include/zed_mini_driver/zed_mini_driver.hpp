@@ -13,12 +13,16 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include <semaphore.h>
+#include <time.h>
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -81,6 +85,7 @@ public:
 private:
   /* Node initialization routines. */
   void init_atomics();
+  void init_sync_primitives();
   void init_parameters();
   void init_publishers();
   void init_services();
@@ -140,15 +145,26 @@ private:
 
   /* Undersampling stopwatches. */
   rclcpp::Time last_video_ts_;
+  rclcpp::Time last_depth_ts_;
 
   /* Camera sampling thread and routine. */
-  void camera_routine();
   std::thread camera_thread_;
+  void camera_routine();
+
+  /* Depth processing thread, routine, and buffers. */
+  std::thread depth_thread_;
+  void depth_routine();
+  sem_t depth_sem_1_;
+  sem_t depth_sem_2_;
+  sl::Mat depth_map_view_;
+  sl::Mat depth_point_cloud_;
+  PoseKit::Pose depth_curr_pose_;
 
   /* Node parameters. */
   bool autostart_;
   int64_t confidence_ = 50;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
+  int64_t depth_rate_ = 0;
   int fps_ = 15;
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
@@ -157,7 +173,7 @@ private:
   bool stream_hd_ = false;
   int64_t texture_confidence_ = 100;
   bool verbose_ = false;
-  int64_t video_rate_ = 15;
+  int64_t video_rate_ = 0;
 
   /* Node parameters validators. */
   bool validate_depth_mode(const rclcpp::Parameter & p);
@@ -174,7 +190,6 @@ private:
     double stereo_baseline = 0.0);
   PoseKit::Pose positional_tracking(sl::Pose & camera_pose);
   void sensor_sampling(sl::SensorsData & sensors_data);
-  void depth_sampling(sl::Mat & depth_map_view, sl::Mat & point_cloud, PoseKit::Pose & curr_pose);
   cv::Mat slMat2cvMat(sl::Mat & input);
   cv::Mat slMat2cvMatDepth(sl::Mat & input);
   Image::SharedPtr frame_to_msg(cv::Mat & frame);

@@ -56,13 +56,21 @@ void ZEDMiniDriverNode::camera_routine()
   Image::SharedPtr right_frame_msg;
   Image::SharedPtr right_frame_msg_sd;
 
-  // Prepare depth sampling data
-  sl::Mat depth_map_view;
-  sl::Mat point_cloud;
-  rclcpp::Time curr_video_ts = this->get_clock()->now();
-  rclcpp::Duration video_period(std::chrono::nanoseconds(
-      int(1.0 / double(video_rate_ > 0 ? video_rate_ : fps_) * 1e9)));
-  last_video_ts_ = curr_video_ts;
+  // Prepare stopwatches
+  rclcpp::Time curr_ts = this->get_clock()->now();
+  rclcpp::Duration depth_period(
+    std::chrono::nanoseconds(int(1.0 / double(depth_rate_ > 0 ? depth_rate_ : fps_) * 1e9)));
+  rclcpp::Duration video_period(
+    std::chrono::nanoseconds(int(1.0 / double(video_rate_ > 0 ? video_rate_ : fps_) * 1e9)));
+  last_depth_ts_ = curr_ts;
+  last_video_ts_ = curr_ts;
+
+  // Spawn depth processing thread
+  depth_thread_ = std::thread{
+    &ZEDMiniDriverNode::depth_routine,
+    this};
+
+  RCLCPP_INFO(this->get_logger(), "Camera sampling thread started");
 
   // Run until stopped
   sl::ERROR_CODE err;
@@ -115,8 +123,39 @@ void ZEDMiniDriverNode::camera_routine()
       sensor_sampling(sensor_data);
     }
 
-    curr_video_ts = this->get_clock()->now();
-    if (((curr_video_ts - last_video_ts_) > video_period) ||
+    curr_ts = this->get_clock()->now();
+
+    if (camera_pose.valid &&
+      (((curr_ts - last_depth_ts_) >= depth_period) ||
+      (depth_rate_ == 0) ||
+      (depth_rate_ >= fps_)) &&
+      (sem_trywait(&depth_sem_1_) == 0))
+    {
+      // Get depth data and post it for processing
+      err = zed_.retrieveImage(depth_map_view_, sl::VIEW::DEPTH);
+      if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "ZEDMiniDriverNode::camera_routine: Failed to retrieve depth map: %s",
+          sl::toString(err).c_str());
+        sem_post(&depth_sem_1_);
+        continue;
+      }
+      err = zed_.retrieveMeasure(depth_point_cloud_, sl::MEASURE::XYZBGRA);
+      if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "ZEDMiniDriverNode::camera_routine: Failed to retrieve point cloud: %s",
+          sl::toString(err).c_str());
+        sem_post(&depth_sem_1_);
+        continue;
+      }
+      depth_curr_pose_ = curr_pose;
+      last_depth_ts_ = curr_ts;
+      sem_post(&depth_sem_2_);
+    }
+
+    if (((curr_ts - last_video_ts_) >= video_period) ||
       (video_rate_ == 0) ||
       (video_rate_ >= fps_))
     {
@@ -271,30 +310,13 @@ void ZEDMiniDriverNode::camera_routine()
         }
       }
 
-      last_video_ts_ = curr_video_ts;
-    }
-
-    // Get and process depth data
-    if (camera_pose.valid) {
-      err = zed_.retrieveImage(depth_map_view, sl::VIEW::DEPTH);
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_ERROR(
-          this->get_logger(),
-          "ZEDMiniDriverNode::camera_routine: Failed to retrieve depth map: %s",
-          sl::toString(err).c_str());
-        continue;
-      }
-      err = zed_.retrieveMeasure(point_cloud, sl::MEASURE::XYZBGRA);
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_ERROR(
-          this->get_logger(),
-          "ZEDMiniDriverNode::camera_routine: Failed to retrieve point cloud: %s",
-          sl::toString(err).c_str());
-        continue;
-      }
-      depth_sampling(depth_map_view, point_cloud, curr_pose);
+      last_video_ts_ = curr_ts;
     }
   }
+
+  // Join depth processing thread
+  depth_thread_.join();
+  RCLCPP_INFO(this->get_logger(), "Depth processing thread joined");
 
   // Close camera
   close_camera();
@@ -473,87 +495,100 @@ void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
 /**
  * @brief Processes depth data.
  *
- * @param depth_map_view Depth map for visualization.
- * @param point_cloud Point cloud.
- * @param curr_pose Current camera pose.
+ * @throws RuntimeError if clock_gettime fails.
  */
-void ZEDMiniDriverNode::depth_sampling(
-  sl::Mat & depth_map_view,
-  sl::Mat & point_cloud,
-  PoseKit::Pose & curr_pose)
+void ZEDMiniDriverNode::depth_routine()
 {
-  // Publish depth map image
-  cv::Mat depth_map_view_cv = slMat2cvMatDepth(depth_map_view);
-  Image::SharedPtr depth_msg = frame_to_msg(depth_map_view_cv);
-  depth_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
-  depth_msg->header.stamp.set__sec(static_cast<int32_t>(depth_map_view.timestamp.getSeconds()));
-  depth_msg->header.stamp.set__nanosec(
-    static_cast<uint32_t>(depth_map_view.timestamp.getNanoseconds() % uint64_t(1e9)));
-  depth_msg->set__encoding(sensor_msgs::image_encodings::BGRA8);
-  if (depth_pub_->getNumSubscribers()) {
-    depth_pub_->publish(*depth_msg);
-  }
+  RCLCPP_INFO(this->get_logger(), "Depth processing thread started");
 
-  // Get latest map -> zedm_odom transform, then compute map -> zedm_link
-  tf_lock_.lock();
-  Eigen::Isometry3d map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_);
-  tf_lock_.unlock();
-  Eigen::Isometry3d camera_odom_to_camera_iso = curr_pose.get_isometry();
-  Eigen::Isometry3d map_to_camera_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso;
+  while (running_.load(std::memory_order_acquire)) {
+    struct timespec timeout;
+    if (clock_gettime(CLOCK_REALTIME, &timeout) == -1) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "ZEDMiniDriver::depth_routine: clock_gettime failed");
+      throw std::runtime_error(
+              "ZEDMiniDriver::depth_routine: clock_gettime failed");
+    }
+    timeout.tv_sec += 1;
 
-  // Fill and publish point cloud messages
-  PointCloud2 pc_msg{};
-  sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
-  pc_msg.header.set__frame_id("map");
-  pc_msg.header.stamp.set__sec(static_cast<int32_t>(point_cloud.timestamp.getSeconds()));
-  pc_msg.header.stamp.set__nanosec(
-    static_cast<uint32_t>(point_cloud.timestamp.getNanoseconds() % uint64_t(1e9)));
-  pc_msg.set__height(1);
-  pc_msg.set__width(static_cast<uint32_t>(point_cloud.getWidth() * point_cloud.getHeight()));
-  pc_msg.set__is_bigendian(false);
-  pc_msg.set__is_dense(true);
-  pc_modifier.setPointCloud2Fields(
-    4,
-    "x", 1, PointField::FLOAT32,
-    "y", 1, PointField::FLOAT32,
-    "z", 1, PointField::FLOAT32,
-    "rgba", 1, PointField::FLOAT32);
-  sensor_msgs::PointCloud2Iterator<float> iter_pc_x(pc_msg, "x");
-  sensor_msgs::PointCloud2Iterator<float> iter_pc_y(pc_msg, "y");
-  sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
-  sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
-  for (uint64_t i = 0; i < point_cloud.getHeight(); ++i) {
-    for (uint64_t j = 0; j < point_cloud.getWidth(); ++j) {
-      // Extract point position w.r.t. the camera from ZED data
-      sl::float4 point3D;
-      if (point_cloud.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
-        ++iter_pc_x;
-        ++iter_pc_y;
-        ++iter_pc_z;
-        ++iter_pc_rgba;
-        continue;
+    if (sem_timedwait(&depth_sem_2_, &timeout) == 0) {
+      // Publish depth map image
+      cv::Mat depth_map_view_cv = slMat2cvMatDepth(depth_map_view_);
+      Image::SharedPtr depth_msg = frame_to_msg(depth_map_view_cv);
+      depth_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
+      depth_msg->header.stamp.set__sec(static_cast<int32_t>(depth_map_view_.timestamp.getSeconds()));
+      depth_msg->header.stamp.set__nanosec(
+        static_cast<uint32_t>(depth_map_view_.timestamp.getNanoseconds() % uint64_t(1e9)));
+      depth_msg->set__encoding(sensor_msgs::image_encodings::BGRA8);
+      if (depth_pub_->getNumSubscribers()) {
+        depth_pub_->publish(*depth_msg);
       }
-      Eigen::Isometry3d point_iso = Eigen::Isometry3d::Identity();
-      point_iso.translation() = Eigen::Vector3d(point3D.x, point3D.y, point3D.z);
 
-      // Express point position w.r.t. the map
-      Eigen::Isometry3d point_map_iso = map_to_camera_iso * point_iso;
+      // Get latest map -> zedm_odom transform, then compute map -> zedm_link
+      tf_lock_.lock();
+      Eigen::Isometry3d map_to_camera_odom_iso = tf2::transformToEigen(map_to_camera_odom_);
+      tf_lock_.unlock();
+      Eigen::Isometry3d camera_odom_to_camera_iso = depth_curr_pose_.get_isometry();
+      Eigen::Isometry3d map_to_camera_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso;
 
-      // Fill point cloud message
-      *iter_pc_x = static_cast<float>(point_map_iso.translation().x());
-      *iter_pc_y = static_cast<float>(point_map_iso.translation().y());
-      *iter_pc_z = static_cast<float>(point_map_iso.translation().z());
-      *iter_pc_rgba = static_cast<float>(point3D.w);
+      // Fill and publish point cloud messages
+      PointCloud2 pc_msg{};
+      sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
+      pc_msg.header.set__frame_id("map");
+      pc_msg.header.stamp.set__sec(static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
+      pc_msg.header.stamp.set__nanosec(
+        static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
+      pc_msg.set__height(1);
+      pc_msg.set__width(static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight()));
+      pc_msg.set__is_bigendian(false);
+      pc_msg.set__is_dense(true);
+      pc_modifier.setPointCloud2Fields(
+        4,
+        "x", 1, PointField::FLOAT32,
+        "y", 1, PointField::FLOAT32,
+        "z", 1, PointField::FLOAT32,
+        "rgba", 1, PointField::FLOAT32);
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_x(pc_msg, "x");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_y(pc_msg, "y");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
+      sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
+      for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
+        for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
+          // Extract point position w.r.t. the camera from ZED data
+          sl::float4 point3D;
+          if (depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
+            ++iter_pc_x;
+            ++iter_pc_y;
+            ++iter_pc_z;
+            ++iter_pc_rgba;
+            continue;
+          }
+          Eigen::Isometry3d point_iso = Eigen::Isometry3d::Identity();
+          point_iso.translation() = Eigen::Vector3d(point3D.x, point3D.y, point3D.z);
 
-      // Advance iterators
-      ++iter_pc_x;
-      ++iter_pc_y;
-      ++iter_pc_z;
-      ++iter_pc_rgba;
+          // Express point position w.r.t. the map
+          Eigen::Isometry3d point_map_iso = map_to_camera_iso * point_iso;
+
+          // Fill point cloud message
+          *iter_pc_x = static_cast<float>(point_map_iso.translation().x());
+          *iter_pc_y = static_cast<float>(point_map_iso.translation().y());
+          *iter_pc_z = static_cast<float>(point_map_iso.translation().z());
+          *iter_pc_rgba = static_cast<float>(point3D.w);
+
+          // Advance iterators
+          ++iter_pc_x;
+          ++iter_pc_y;
+          ++iter_pc_z;
+          ++iter_pc_rgba;
+        }
+      }
+      point_cloud_pub_->publish(pc_msg);
+      rviz_point_cloud_pub_->publish(pc_msg);
+
+      sem_post(&depth_sem_1_);
     }
   }
-  point_cloud_pub_->publish(pc_msg);
-  rviz_point_cloud_pub_->publish(pc_msg);
 }
 
 }   // namespace ZEDMiniDriver

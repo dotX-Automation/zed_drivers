@@ -21,6 +21,7 @@ ZEDMiniDriverNode::ZEDMiniDriverNode(const rclcpp::NodeOptions & opts)
 : NodeBase("zed_mini_driver", opts, true)
 {
   init_atomics();
+  init_sync_primitives();
   init_parameters();
   init_publishers();
   init_services();
@@ -51,6 +52,7 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
       std::memory_order_acquire))
   {
     camera_thread_.join();
+    RCLCPP_INFO(this->get_logger(), "Camera thread joined");
   }
 
   // Destroy image_transport publishers
@@ -70,6 +72,10 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
   // Stop TF listeners
   tf_listener_.reset();
   tf_buffer_.reset();
+
+  // Destroy semaphores
+  sem_destroy(&depth_sem_1_);
+  sem_destroy(&depth_sem_2_);
 }
 
 /**
@@ -78,6 +84,25 @@ ZEDMiniDriverNode::~ZEDMiniDriverNode()
 void ZEDMiniDriverNode::init_atomics()
 {
   running_.store(false, std::memory_order_release);
+}
+
+/**
+ * @brief Initializes synchronization primitives.
+ *
+ * @throws RuntimeError if something fails during initialization.
+ */
+void ZEDMiniDriverNode::init_sync_primitives()
+{
+  if ((sem_init(&depth_sem_1_, 0, 1) != 0) ||
+    (sem_init(&depth_sem_2_, 0, 0) != 0))
+  {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "ZEDMiniDriverNode::init_sync_primitives: Failed to initialize semaphores");
+    perror("sem_init");
+    throw std::runtime_error(
+            "ZEDMiniDriverNode::init_sync_primitives: Failed to initialize semaphores");
+  }
 }
 
 /**

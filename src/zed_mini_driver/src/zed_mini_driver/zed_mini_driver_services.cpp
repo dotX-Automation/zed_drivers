@@ -44,6 +44,7 @@ void ZEDMiniDriverNode::enable_callback(
         std::memory_order_acquire))
     {
       camera_thread_.join();
+      RCLCPP_INFO(this->get_logger(), "Camera sampling thread joined");
     }
   }
   resp->set__success(true);

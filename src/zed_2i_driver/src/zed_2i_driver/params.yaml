@@ -1,0 +1,200 @@
+header_include_path: zed_2i_driver/zed_2i_driver.hpp
+namespace: ZED2iDriver
+node_class_name: ZED2iDriverNode
+
+params:
+  autostart:
+    type: bool
+    default_value: true
+    description: "Start the camera on node startup"
+    constraints: "Cannot be changed after node startup"
+    read_only: true
+    var_name: autostart_
+
+  camera_settings_path:
+    type: string
+    default_value: ""
+    description: "Path to the ZED camera settings file"
+    constraints: "Changes require camera restart, must be a valid file path"
+    read_only: false
+
+  confidence:
+    type: integer
+    default_value: 50
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Depth onfidence threshold"
+    constraints: "Must be a valid confidence threshold for the ZED camera"
+    read_only: false
+    var_name: confidence_
+
+  depth_max_distance:
+    type: double
+    default_value: 5.0
+    min_value: 1.0
+    max_value: 20.0
+    step: 0.0
+    description: "Maximum depth distance [m]"
+    constraints: "Changes require camera restart, must be a valid maximum depth distance for the ZED camera"
+    read_only: false
+
+  depth_min_distance:
+    type: double
+    default_value: 0.7
+    min_value: 0.1
+    max_value: 1.0
+    step: 0.0
+    description: "Minimum depth distance [m]"
+    constraints: "Changes require camera restart, must be a valid minimum depth distance for the ZED camera"
+    read_only: false
+
+  depth_rate:
+    type: integer
+    default_value: 5
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Depth stream publishing rate (for undersampling)"
+    constraints: "Changes require camera restart, 0 or >fps mean no undersampling"
+    read_only: false
+    var_name: depth_rate_
+
+  depth_mode:
+    type: string
+    default_value: NEURAL
+    description: "Depth mode"
+    constraints: "Changes require camera restart, must be a valid depth mode for the ZED camera"
+    read_only: false
+    validator: validate_depth_mode
+
+  depth_stabilization:
+    type: integer
+    default_value: 1
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Depth stabilization"
+    constraints: "Changes require camera restart, must be a valid depth stabilization value for the ZED camera"
+    read_only: false
+
+  eigen_max_cores:
+    type: integer
+    default_value: 4
+    min_value: 0
+    max_value: 16
+    step: 1
+    description: "Maximum number of cores to use for Eigen library"
+    constraints: "Changes require full restart, 0 means no change, must be a valid number of cores depending on the system, pay attention to set this to the same amount if you load this node with others that do the same"
+    read_only: true
+
+  fps:
+    type: integer
+    default_value: 30
+    min_value: 15
+    max_value: 100
+    step: 1
+    description: "Frame rate of the camera"
+    constraints: "Changes require camera restart, must be a valid frame rate for the ZED camera"
+    read_only: false
+    validator: validate_fps
+
+  link_namespace:
+    type: string
+    default_value: ""
+    description: "Namespace for the zedm link, including the last trailing slash"
+    constraints: "Must be a valid link namespace."
+    read_only: true
+    var_name: link_namespace_
+
+  resolution:
+    type: string
+    default_value: HD720
+    description: "Camera resolution"
+    constraints: "Changes require camera restart, must be a valid resolution for the ZED camera"
+    read_only: false
+    validator: validate_resolution
+
+  roi_box_sizes:
+    type: double_array
+    default_value:
+      - 2.0
+      - 3.0
+      - 2.0
+    min_value: 0.0
+    max_value: 20.0
+    step: 0.0
+    description: "Point clouds ROI box sizes (X, Y, Z) [m]"
+    constraints: "Sizes are intended in NWU frame originating at the bottom right corner of the box"
+    read_only: false
+    var_name: roi_box_sizes_
+
+  sd_width:
+    type: integer
+    default_value: 768
+    min_value: 0
+    max_value: 1920
+    step: 1
+    description: "Width of SD images"
+    constraints: "Must be a valid image width"
+    read_only: true
+    var_name: sd_width_
+
+  sd_height:
+    type: integer
+    default_value: 432
+    min_value: 0
+    max_value: 1080
+    step: 1
+    description: "Height of SD images"
+    constraints: "Must be a valid image height"
+    read_only: true
+    var_name: sd_height_
+
+  serial_number:
+    type: integer
+    default_value: -1
+    min_value: -1
+    max_value: 2147483647
+    step: 1
+    description: "Serial number of the camera to open"
+    constraints: "Must be a valid serial number, or -1 to open the first available camera"
+    read_only: false
+
+  stream_hd:
+    type: bool
+    default_value: true
+    description: "Enables HD image streaming"
+    constraints: "Changes might require stream restart if artifacts are present"
+    read_only: false
+    var_name: stream_hd_
+
+  texture_confidence:
+    type: integer
+    default_value: 100
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Texture confidence threshold"
+    constraints: "Must be a valid texture confidence threshold for the ZED camera"
+    read_only: false
+    var_name: texture_confidence_
+
+  verbose:
+    type: bool
+    default_value: true
+    description: "Enables additional logging"
+    constraints: ""
+    read_only: false
+    var_name: verbose_
+
+  video_rate:
+    type: integer
+    default_value: 0
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Video streams publishing rate (for undersampling)"
+    constraints: "Changes require camera restart, 0 or >fps mean no undersampling"
+    read_only: false
+    var_name: video_rate_

@@ -1,0 +1,26 @@
+/zed/zed_2i_driver:
+  ros__parameters:
+    autostart: true
+    camera_settings_path: ''
+    confidence: 50
+    depth_max_distance: 5.0
+    depth_min_distance: 0.3
+    depth_mode: NEURAL
+    depth_rate: 5
+    depth_stabilization: 1
+    eigen_max_cores: 4
+    fps: 30
+    link_namespace: ''
+    resolution: HD720
+    roi_box_sizes:
+    - 2.0
+    - 3.0
+    - 2.0
+    sd_height: 432
+    sd_width: 768
+    serial_number: -1
+    stream_hd: false
+    texture_confidence: 100
+    use_sim_time: false
+    verbose: false
+    video_rate: 20

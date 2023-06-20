@@ -1,20 +1,20 @@
 /**
- * Worker threads of the ZED Mini driver node.
+ * Worker threads of the ZED 2i driver node.
  *
  * Roberto Masocco <robmasocco@gmail.com>
  * Intelligent Systems Lab <isl.torvergata@gmail.com>
  *
- * June 13, 2023
+ * June 20, 2023
  */
 
 #include <cmath>
 
-#include <zed_mini_driver/zed_mini_driver.hpp>
+#include <zed_2i_driver/zed_2i_driver.hpp>
 
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>
 
-namespace ZEDMiniDriver
+namespace ZED2iDriver
 {
 
 /**
@@ -22,11 +22,11 @@ namespace ZEDMiniDriver
  *
  * @throws RuntimeError if the camera cannot be opened.s
  */
-void ZEDMiniDriverNode::camera_routine()
+void ZED2iDriverNode::camera_routine()
 {
   // Open camera
   if (!open_camera()) {
-    throw std::runtime_error("ZEDMiniDriverNode::camera_routine: Failed to open camera");
+    throw std::runtime_error("ZED2iDriverNode::camera_routine: Failed to open camera");
   }
 
   // Prepare positional tracking data
@@ -67,7 +67,7 @@ void ZEDMiniDriverNode::camera_routine()
 
   // Spawn depth processing thread
   depth_thread_ = std::thread{
-    &ZEDMiniDriverNode::depth_routine,
+    &ZED2iDriverNode::depth_routine,
     this};
 
   RCLCPP_INFO(this->get_logger(), "Camera sampling thread started");
@@ -87,7 +87,7 @@ void ZEDMiniDriverNode::camera_routine()
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "ZEDMiniDriverNode::camera_routine: Failed to grab data (%d): %s",
+        "ZED2iDriverNode::camera_routine: Failed to grab data (%d): %s",
         static_cast<int>(err),
         sl::toString(err).c_str());
       running_.store(false, std::memory_order_release);
@@ -136,7 +136,7 @@ void ZEDMiniDriverNode::camera_routine()
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "ZEDMiniDriverNode::camera_routine: Failed to retrieve depth map: %s",
+          "ZED2iDriverNode::camera_routine: Failed to retrieve depth map: %s",
           sl::toString(err).c_str());
         sem_post(&depth_sem_1_);
         continue;
@@ -145,7 +145,7 @@ void ZEDMiniDriverNode::camera_routine()
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "ZEDMiniDriverNode::camera_routine: Failed to retrieve point cloud: %s",
+          "ZED2iDriverNode::camera_routine: Failed to retrieve point cloud: %s",
           sl::toString(err).c_str());
         sem_post(&depth_sem_1_);
         continue;
@@ -183,7 +183,7 @@ void ZEDMiniDriverNode::camera_routine()
 
           left_frame_msg = frame_to_msg(left_frame_cv_bgr);
 
-          left_frame_msg->header.set__frame_id(link_namespace_ + "zedm_left_link");
+          left_frame_msg->header.set__frame_id(link_namespace_ + "zed2i_left_link");
           left_frame_msg->header.stamp.set__sec(
             static_cast<int32_t>(left_frame.timestamp.getSeconds()));
           left_frame_msg->header.stamp.set__nanosec(
@@ -215,7 +215,7 @@ void ZEDMiniDriverNode::camera_routine()
 
           left_frame_msg_sd = frame_to_msg(left_frame_cv_bgr_sd);
 
-          left_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_left_link");
+          left_frame_msg_sd->header.set__frame_id(link_namespace_ + "zed2i_left_link");
           left_frame_msg_sd->header.stamp.set__sec(
             static_cast<int32_t>(left_frame_sd.timestamp.getSeconds()));
           left_frame_msg_sd->header.stamp.set__nanosec(
@@ -254,7 +254,7 @@ void ZEDMiniDriverNode::camera_routine()
 
           right_frame_msg = frame_to_msg(right_frame_cv_bgr);
 
-          right_frame_msg->header.set__frame_id(link_namespace_ + "zedm_right_link");
+          right_frame_msg->header.set__frame_id(link_namespace_ + "zed2i_right_link");
           right_frame_msg->header.stamp.set__sec(
             static_cast<int32_t>(right_frame.timestamp.getSeconds()));
           right_frame_msg->header.stamp.set__nanosec(
@@ -286,7 +286,7 @@ void ZEDMiniDriverNode::camera_routine()
 
           right_frame_msg_sd = frame_to_msg(right_frame_cv_bgr_sd);
 
-          right_frame_msg_sd->header.set__frame_id(link_namespace_ + "zedm_right_link");
+          right_frame_msg_sd->header.set__frame_id(link_namespace_ + "zed2i_right_link");
           right_frame_msg_sd->header.stamp.set__sec(
             static_cast<int32_t>(right_frame_sd.timestamp.getSeconds()));
           right_frame_msg_sd->header.stamp.set__nanosec(
@@ -329,11 +329,11 @@ void ZEDMiniDriverNode::camera_routine()
  *
  * @return Current camera pose in zedm_odom frame.
  */
-PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
+PoseKit::Pose ZED2iDriverNode::positional_tracking(sl::Pose & camera_pose)
 {
   // Parse pose data
   Header pose_header{};
-  pose_header.set__frame_id(link_namespace_ + "zedm_odom");
+  pose_header.set__frame_id(link_namespace_ + "zed2i_odom");
   pose_header.stamp.set__sec(
     static_cast<int32_t>(camera_pose.timestamp.getNanoseconds() /
     uint64_t(1e9)));
@@ -361,7 +361,7 @@ PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
 
   // Parse twist data (it's in body frame, so left camera frame)
   Header twist_header{};
-  twist_header.set__frame_id(link_namespace_ + "zedm_link");
+  twist_header.set__frame_id(link_namespace_ + "zed2i_link");
   twist_header.stamp.set__sec(
     static_cast<int32_t>(camera_pose.timestamp.getSeconds()));
   twist_header.stamp.set__nanosec(
@@ -397,7 +397,7 @@ PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "ZEDMiniDriverNode::camera_routine: base_link_pose::track_parent: %s",
+      "ZED2iDriverNode::camera_routine: base_link_pose::track_parent: %s",
       e.what());
     tf_lock_.unlock();
   }
@@ -411,7 +411,7 @@ PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "ZEDMiniDriverNode::camera_routine: base_link_twist::track_parent: %s",
+      "ZED2iDriverNode::camera_routine: base_link_twist::track_parent: %s",
       e.what());
     tf_lock_.unlock();
   }
@@ -419,7 +419,7 @@ PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
   // Build odometry messages
   Odometry camera_odom_msg{}, base_link_odom_msg{};
   camera_odom_msg.set__header(zed_pose.get_header());
-  camera_odom_msg.set__child_frame_id(link_namespace_ + "zedm_link");
+  camera_odom_msg.set__child_frame_id(link_namespace_ + "zed2i_link");
   camera_odom_msg.set__pose(zed_pose.to_pose_with_covariance_stamped().pose);
   camera_odom_msg.set__twist(zed_twist.to_twist_with_covariance_stamped().twist);
   base_link_odom_msg.set__header(base_link_pose.get_header());
@@ -447,7 +447,7 @@ PoseKit::Pose ZEDMiniDriverNode::positional_tracking(sl::Pose & camera_pose)
  *
  * @param sensors_data Sensors data.
  */
-void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
+void ZED2iDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
 {
   // Process IMU data
   sl::SensorsData::IMUData imu_data = sensors_data.imu;
@@ -456,7 +456,7 @@ void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
     imu_msg.header.stamp.set__sec(static_cast<int32_t>(imu_data.timestamp.getSeconds()));
     imu_msg.header.stamp.set__nanosec(
       static_cast<uint32_t>(imu_data.timestamp.getNanoseconds() % uint64_t(1e9)));
-    imu_msg.header.set__frame_id(link_namespace_ + "zedm_imu_link");
+    imu_msg.header.set__frame_id(link_namespace_ + "zed2i_imu_link");
 
     imu_msg.orientation.set__w(static_cast<double>(imu_data.pose.getOrientation().ow));
     imu_msg.orientation.set__x(static_cast<double>(imu_data.pose.getOrientation().ox));
@@ -497,7 +497,7 @@ void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
  *
  * @throws RuntimeError if clock_gettime fails.
  */
-void ZEDMiniDriverNode::depth_routine()
+void ZED2iDriverNode::depth_routine()
 {
   RCLCPP_INFO(this->get_logger(), "Depth processing thread started");
 
@@ -506,9 +506,9 @@ void ZEDMiniDriverNode::depth_routine()
     if (clock_gettime(CLOCK_REALTIME, &timeout) == -1) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "ZEDMiniDriver::depth_routine: clock_gettime failed");
+        "ZED2iDriver::depth_routine: clock_gettime failed");
       throw std::runtime_error(
-              "ZEDMiniDriver::depth_routine: clock_gettime failed");
+              "ZED2iDriver::depth_routine: clock_gettime failed");
     }
     timeout.tv_sec += 1;
 
@@ -516,7 +516,7 @@ void ZEDMiniDriverNode::depth_routine()
       // Publish depth map image
       cv::Mat depth_map_view_cv = slMat2cvMatDepth(depth_map_view_);
       Image::SharedPtr depth_msg = frame_to_msg(depth_map_view_cv);
-      depth_msg->header.set__frame_id(link_namespace_ + "zedm_link");
+      depth_msg->header.set__frame_id(link_namespace_ + "zed2i_link");
       depth_msg->header.stamp.set__sec(static_cast<int32_t>(depth_map_view_.timestamp.getSeconds()));
       depth_msg->header.stamp.set__nanosec(
         static_cast<uint32_t>(depth_map_view_.timestamp.getNanoseconds() % uint64_t(1e9)));
@@ -735,7 +735,7 @@ void ZEDMiniDriverNode::depth_routine()
       cleanup_marker.set__action(Marker::DELETEALL);
       roi_marker.header.set__frame_id("map");
       roi_marker.header.stamp = pc_msg.header.stamp;
-      roi_marker.set__ns("zed_mini_driver");
+      roi_marker.set__ns("zed_2i_driver");
       roi_marker.set__id(0);
       roi_marker.set__type(Marker::CUBE);
       roi_marker.set__action(Marker::ADD);
@@ -762,4 +762,4 @@ void ZEDMiniDriverNode::depth_routine()
   }
 }
 
-}   // namespace ZEDMiniDriver
+}   // namespace ZED2iDriver

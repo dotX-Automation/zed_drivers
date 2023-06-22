@@ -2,7 +2,7 @@
   ros__parameters:
     autostart: true
     camera_settings_path: ''
-    confidence: 50
+    confidence: 20
     depth_max_distance: 5.0
     depth_min_distance: 0.3
     depth_mode: NEURAL

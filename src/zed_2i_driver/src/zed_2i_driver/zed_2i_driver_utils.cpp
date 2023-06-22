@@ -99,8 +99,8 @@ bool ZED2iDriverNode::open_camera()
   sl::CameraInformation zed_info = zed_.getCameraInformation();
   sl::CameraInformation zed_info_sd = zed_.getCameraInformation(
     sl::Resolution(
-      sd_width_,
-      sd_height_));
+      sd_resolution_[0],
+      sd_resolution_[1]));
   sl::CameraParameters left_info = zed_info.camera_configuration.calibration_parameters.left_cam;
   sl::CameraParameters left_sd_info =
     zed_info_sd.camera_configuration.calibration_parameters.left_cam;

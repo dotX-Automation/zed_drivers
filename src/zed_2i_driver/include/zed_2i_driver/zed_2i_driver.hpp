@@ -171,12 +171,12 @@ private:
   int64_t confidence_ = 50;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;
+  std::vector<int64_t> depth_resolution_ = {0, 0};
   int fps_ = 15;
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   std::vector<double> roi_box_sizes_;
-  int64_t sd_width_;
-  int64_t sd_height_;
+  std::vector<int64_t> sd_resolution_ = {0, 0};
   bool stream_hd_ = false;
   int64_t texture_confidence_ = 100;
   bool verbose_ = false;

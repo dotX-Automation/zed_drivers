@@ -49,9 +49,17 @@ params:
     constraints: "Changes require camera restart, must be a valid minimum depth distance for the ZED camera"
     read_only: false
 
+  depth_mode:
+    type: string
+    default_value: NEURAL
+    description: "Depth mode"
+    constraints: "Changes require camera restart, must be a valid depth mode for the ZED camera"
+    read_only: false
+    validator: validate_depth_mode
+
   depth_rate:
     type: integer
-    default_value: 5
+    default_value: 0
     min_value: 0
     max_value: 100
     step: 1
@@ -60,13 +68,18 @@ params:
     read_only: false
     var_name: depth_rate_
 
-  depth_mode:
-    type: string
-    default_value: NEURAL
-    description: "Depth mode"
-    constraints: "Changes require camera restart, must be a valid depth mode for the ZED camera"
+  depth_resolution:
+    type: integer_array
+    default_value:
+      - 768
+      - 432
+    min_value: 0
+    max_value: 1920
+    step: 1
+    description: "Depth map resolution (width, height)"
+    constraints: "Changes require camera restart, must be a valid depth map resolution for the ZED camera"
     read_only: false
-    validator: validate_depth_mode
+    var_name: depth_resolution_
 
   depth_stabilization:
     type: integer
@@ -129,27 +142,18 @@ params:
     read_only: false
     var_name: roi_box_sizes_
 
-  sd_width:
-    type: integer
-    default_value: 768
+  sd_resolution:
+    type: integer_array
+    default_value:
+      - 768
+      - 432
     min_value: 0
     max_value: 1920
     step: 1
-    description: "Width of SD images"
-    constraints: "Must be a valid image width"
-    read_only: true
-    var_name: sd_width_
-
-  sd_height:
-    type: integer
-    default_value: 432
-    min_value: 0
-    max_value: 1080
-    step: 1
-    description: "Height of SD images"
-    constraints: "Must be a valid image height"
-    read_only: true
-    var_name: sd_height_
+    description: "SD image resolution (width, height)"
+    constraints: "Changes require camera restart, must be a valid SD image resolution for the ZED camera"
+    read_only: false
+    var_name: sd_resolution_
 
   serial_number:
     type: integer

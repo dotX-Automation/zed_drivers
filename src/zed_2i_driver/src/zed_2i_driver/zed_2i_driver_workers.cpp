@@ -38,7 +38,7 @@ void ZED2iDriverNode::camera_routine()
 
   // Prepare image sampling data
   sl::Resolution camera_res = zed_.getCameraInformation().camera_configuration.resolution;
-  sl::Resolution sd_res(sd_width_, sd_height_);
+  sl::Resolution sd_res(sd_resolution_[0], sd_resolution_[1]);
   sl::Mat left_frame(camera_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
   sl::Mat right_frame(camera_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
   sl::Mat left_frame_sd(sd_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
@@ -55,6 +55,9 @@ void ZED2iDriverNode::camera_routine()
   Image::SharedPtr left_frame_msg_sd;
   Image::SharedPtr right_frame_msg;
   Image::SharedPtr right_frame_msg_sd;
+
+  // Prepare depth processing data
+  sl::Resolution depth_res(depth_resolution_[0], depth_resolution_[1]);
 
   // Prepare stopwatches
   rclcpp::Time curr_ts = this->get_clock()->now();
@@ -132,7 +135,7 @@ void ZED2iDriverNode::camera_routine()
       (sem_trywait(&depth_sem_1_) == 0))
     {
       // Get depth data and post it for processing
-      err = zed_.retrieveImage(depth_map_view_, sl::VIEW::DEPTH);
+      err = zed_.retrieveImage(depth_map_view_, sl::VIEW::DEPTH, sl::MEM::CPU, depth_res);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
@@ -141,7 +144,7 @@ void ZED2iDriverNode::camera_routine()
         sem_post(&depth_sem_1_);
         continue;
       }
-      err = zed_.retrieveMeasure(depth_point_cloud_, sl::MEASURE::XYZBGRA);
+      err = zed_.retrieveMeasure(depth_point_cloud_, sl::MEASURE::XYZBGRA, sl::MEM::CPU, depth_res);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
@@ -313,6 +316,10 @@ void ZED2iDriverNode::camera_routine()
       last_video_ts_ = curr_ts;
     }
   }
+
+  // Release memory of shared resources
+  depth_map_view_.free(sl::MEM::CPU);
+  depth_point_cloud_.free(sl::MEM::CPU);
 
   // Join depth processing thread
   depth_thread_.join();

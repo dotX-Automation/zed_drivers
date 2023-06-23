@@ -16,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # zed_drivers START #
 # Install ZED SDK dependencies
 RUN apt-get update && \
-  apt-get install --no-install-recommends zstd && \
+  apt-get install -y --no-install-recommends zstd && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*
 
 # Install the ZED SDK (no Python API, since it appears to mess with the ROS 2 installation)

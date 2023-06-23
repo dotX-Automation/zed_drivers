@@ -4,12 +4,12 @@
     camera_settings_path: ''
     confidence: 20
     depth_max_distance: 5.0
-    depth_min_distance: 0.3
+    depth_min_distance: 0.5
     depth_mode: NEURAL
-    depth_rate: 0
+    depth_rate: 1
     depth_resolution:
-      - 768
-      - 432
+      - 640
+      - 360
     depth_stabilization: 1
     eigen_max_cores: 4
     fps: 30
@@ -20,11 +20,11 @@
     - 3.0
     - 2.0
     sd_resolution:
-      - 768
-      - 432
+      - 640
+      - 360
     serial_number: -1
-    stream_hd: true
+    stream_hd: false
     texture_confidence: 100
     use_sim_time: false
     verbose: true
-    video_rate: 0
+    video_rate: 10

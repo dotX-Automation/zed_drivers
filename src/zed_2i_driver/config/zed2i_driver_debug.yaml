@@ -8,16 +8,16 @@
     depth_mode: NEURAL
     depth_rate: 1
     depth_resolution:
-      - 640
-      - 360
+      - 480
+      - 270
     depth_stabilization: 1
     eigen_max_cores: 4
     fps: 30
     link_namespace: ''
-    resolution: HD720
+    resolution: VGA
     roi_box_sizes:
+    - 4.0
     - 2.0
-    - 3.0
     - 2.0
     sd_resolution:
       - 640

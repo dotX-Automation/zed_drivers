@@ -129,6 +129,7 @@ void ZEDMiniDriverNode::camera_routine()
     curr_ts = this->get_clock()->now();
 
     if (camera_pose.valid &&
+      (depth_mode_ != sl::DEPTH_MODE::NONE) &&
       (((curr_ts - last_depth_ts_) >= depth_period) ||
       (depth_rate_ == 0) ||
       (depth_rate_ >= fps_)) &&

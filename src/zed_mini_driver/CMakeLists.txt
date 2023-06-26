@@ -27,12 +27,14 @@ endif()
 # If we're on a Jetson device, some paths and options must be configured to find stubs that
 # the Nvidia container runtime will then mount when an executable is loaded
 # NOTE: The condition we check is a bit of a hack and might stop working, but for now it work
-file(STRINGS "/etc/nv_tegra_release" FILE_CONTENTS LIMIT_COUNT 1)
-string(FIND "${FILE_CONTENTS}" "# R35" MATCH_INDEX)
-if(EXISTS "/usr/lib/aarch64-linux-gnu/tegra" AND ${MATCH_INDEX} GREATER -1)
-  message(STATUS "Jetson platform detected, configuring build to check for CUDA stubs")
-  list(APPEND CMAKE_LIBRARY_PATH "/usr/local/cuda/lib64/stubs_")
-  list(APPEND CMAKE_CXX_FLAGS "-Wl,--allow-shlib-undefined")
+if(EXISTS "/etc/nv_tegra_release" AND EXISTS "/usr/lib/aarch64-linux-gnu/tegra")
+  file(STRINGS "/etc/nv_tegra_release" FILE_CONTENTS LIMIT_COUNT 1)
+  string(FIND "${FILE_CONTENTS}" "# R35" MATCH_INDEX)
+  if(${MATCH_INDEX} GREATER -1)
+    message(STATUS "Jetson platform detected, configuring build to check for CUDA stubs")
+    list(APPEND CMAKE_LIBRARY_PATH "/usr/local/cuda/lib64/stubs_")
+    list(APPEND CMAKE_CXX_FLAGS "-Wl,--allow-shlib-undefined")
+  endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

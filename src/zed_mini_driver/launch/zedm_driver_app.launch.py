@@ -4,7 +4,7 @@ ZED Mini Driver app launch file.
 Roberto Masocco <robmasocco@gmail.com>
 Intelligent Systems Lab <isl.torvergata@gmail.com>
 
-Jume 20, 2023
+June 20, 2023
 """
 
 import os

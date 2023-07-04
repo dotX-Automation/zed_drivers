@@ -32,6 +32,7 @@ void ZED2iDriverNode::camera_routine()
   // Prepare positional tracking data
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
+  PoseKit::Pose curr_pose{};
 
   // Prepare sensors data
   sl::SensorsData sensor_data;
@@ -84,6 +85,9 @@ void ZED2iDriverNode::camera_routine()
   runtime_params.remove_saturated_areas = true;
   while (running_.load(std::memory_order_acquire)) {
     // Grab data
+    if (delayed_tracking_) {
+      runtime_params.enable_depth = !runtime_params.enable_depth;
+    }
     runtime_params.confidence_threshold = static_cast<int>(confidence_);
     runtime_params.texture_confidence_threshold = static_cast<int>(texture_confidence_);
     err = zed_.grab(runtime_params);
@@ -98,27 +102,28 @@ void ZED2iDriverNode::camera_routine()
     }
 
     // Get positional tracking data
-    tracking_state = zed_.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
-    if (verbose_) {
-      switch (tracking_state) {
-        case sl::POSITIONAL_TRACKING_STATE::OFF:
-          RCLCPP_ERROR(this->get_logger(), "Positional tracking OFF");
-          break;
-        case sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW:
-          RCLCPP_ERROR(this->get_logger(), "FPS too low");
-          break;
-        case sl::POSITIONAL_TRACKING_STATE::SEARCHING:
-          RCLCPP_WARN(this->get_logger(), "Track lost, relocalizing...");
-          break;
-        default:
-          break;
+    if (runtime_params.enable_depth || depth_mode_ == sl::DEPTH_MODE::NONE) {
+      tracking_state = zed_.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
+      if (verbose_) {
+        switch (tracking_state) {
+          case sl::POSITIONAL_TRACKING_STATE::OFF:
+            RCLCPP_ERROR(this->get_logger(), "Positional tracking OFF");
+            break;
+          case sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW:
+            RCLCPP_ERROR(this->get_logger(), "FPS too low");
+            break;
+          case sl::POSITIONAL_TRACKING_STATE::SEARCHING:
+            RCLCPP_WARN(this->get_logger(), "Track lost, relocalizing...");
+            break;
+          default:
+            break;
+        }
       }
-    }
 
-    // Publish positional tracking data
-    PoseKit::Pose curr_pose{};
-    if (camera_pose.valid) {
-      curr_pose = positional_tracking(camera_pose);
+      // Publish positional tracking data
+      if (camera_pose.valid) {
+        curr_pose = positional_tracking(camera_pose);
+      }
     }
 
     // Publish sensor data
@@ -128,7 +133,8 @@ void ZED2iDriverNode::camera_routine()
 
     curr_ts = this->get_clock()->now();
 
-    if (camera_pose.valid &&
+    if (runtime_params.enable_depth &&
+      camera_pose.valid &&
       (depth_mode_ != sl::DEPTH_MODE::NONE) &&
       (((curr_ts - last_depth_ts_) >= depth_period) ||
       (depth_rate_ == 0) ||

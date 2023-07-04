@@ -29,6 +29,14 @@ params:
     read_only: false
     var_name: confidence_
 
+  delayed_tracking:
+    type: bool
+    default_value: false
+    description: "Delays tracking when depth is enabled, to allow for continuous video streams on slower hardware"
+    constraints: "Changes require camera restart, use only when depth is enabled"
+    read_only: false
+    var_name: delayed_tracking_
+
   depth_max_distance:
     type: double
     default_value: 5.0

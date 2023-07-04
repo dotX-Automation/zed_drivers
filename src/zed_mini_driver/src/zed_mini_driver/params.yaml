@@ -120,6 +120,65 @@ params:
     read_only: false
     validator: validate_fps
 
+  imu_filters_sampling_time:
+    type: double
+    default_value: 0.033333
+    min_value: 0.001
+    max_value: 1.0
+    step: 0.0
+    description: "IMU filters sampling time [s]"
+    constraints: "Changes require camera restart."
+    read_only: false
+    var_name: imu_filters_sampling_time_
+
+  imu_filters_zoh_steps:
+    type: integer
+    default_value: 1000
+    min_value: 2
+    max_value: 1000000
+    step: 1
+    description: "IMU filter ZOH integral steps"
+    constraints: "Changes require camera restart"
+    read_only: false
+    var_name: imu_filters_zoh_steps_
+
+  imu_filters_order:
+    type: integer
+    default_value: 2
+    min_value: 1
+    max_value: 10
+    step: 1
+    description: "IMU filter order"
+    constraints: "Changes require camera restart"
+    read_only: false
+    var_name: imu_filters_order_
+
+  imu_filters_low_freqs:
+    type: double_array
+    default_value:
+      - 0.5
+      - 0.5
+    min_value: 0.0
+    max_value: 1000.0
+    step: 0.0
+    description: "IMU filters low frequencies [Hz]"
+    constraints: "Changes require camera restart"
+    read_only: false
+    var_name: imu_filters_low_freqs_
+
+  imu_filters_high_freqs:
+    type: double_array
+    default_value:
+      - 10.0
+      - 10.0
+    min_value: 0.0
+    max_value: 1000.0
+    step: 0.0
+    description: "IMU filters high frequencies [Hz]"
+    constraints: "Changes require camera restart"
+    read_only: false
+    var_name: imu_filters_high_freqs_
+
   link_namespace:
     type: string
     default_value: ""

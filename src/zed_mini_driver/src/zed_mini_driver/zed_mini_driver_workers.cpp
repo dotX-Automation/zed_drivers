@@ -29,6 +29,26 @@ void ZEDMiniDriverNode::camera_routine()
     throw std::runtime_error("ZEDMiniDriverNode::camera_routine: Failed to open camera");
   }
 
+  // Initialize IMU filters
+  for (int i = 0; i < 3; i++) {
+    gyro_filters_[i].make_butterworth(
+      imu_filters_sampling_time_,
+      imu_filters_zoh_steps_,
+      DynamicSystems::Control::ButterworthType::BAND_PASS,
+      imu_filters_order_,
+      {
+        imu_filters_low_freqs_[0] * 2.0 * M_PI,
+        imu_filters_high_freqs_[0] * 2.0 * M_PI});
+    accel_filters_[i].make_butterworth(
+      imu_filters_sampling_time_,
+      imu_filters_zoh_steps_,
+      DynamicSystems::Control::ButterworthType::BAND_PASS,
+      imu_filters_order_,
+      {
+        imu_filters_low_freqs_[1] * 2.0 * M_PI,
+        imu_filters_high_freqs_[1] * 2.0 * M_PI});
+  }
+
   // Prepare positional tracking data
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
@@ -506,20 +526,26 @@ void ZEDMiniDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
     }
 
     imu_msg.angular_velocity.set__x(
-      static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.x));
+      gyro_filters_[0].evolve(
+        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.x))(0, 0));
     imu_msg.angular_velocity.set__y(
-      static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.y));
+      gyro_filters_[1].evolve(
+        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.y))(0, 0));
     imu_msg.angular_velocity.set__z(
-      static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.z));
+      gyro_filters_[2].evolve(
+        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.z))(0, 0));
 
     for (int i = 0; i < 9; ++i) {
       imu_msg.angular_velocity_covariance[i] =
         static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity_covariance.r[i]);
     }
 
-    imu_msg.linear_acceleration.set__x(static_cast<double>(imu_data.linear_acceleration.x));
-    imu_msg.linear_acceleration.set__y(static_cast<double>(imu_data.linear_acceleration.y));
-    imu_msg.linear_acceleration.set__z(static_cast<double>(imu_data.linear_acceleration.z));
+    imu_msg.linear_acceleration.set__x(
+      accel_filters_[0].evolve(static_cast<double>(imu_data.linear_acceleration.x))(0, 0));
+    imu_msg.linear_acceleration.set__y(
+      accel_filters_[1].evolve(static_cast<double>(imu_data.linear_acceleration.y))(0, 0));
+    imu_msg.linear_acceleration.set__z(
+      accel_filters_[2].evolve(static_cast<double>(imu_data.linear_acceleration.z))(0, 0));
 
     for (int i = 0; i < 9; ++i) {
       imu_msg.linear_acceleration_covariance[i] =

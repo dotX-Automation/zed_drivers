@@ -14,10 +14,13 @@
   <depend>dua_interfaces</depend>
   <depend>dua_node</depend>
   <depend>dua_qos</depend>
+  <depend>dynamic_systems_base</depend>
+  <depend>dynamic_systems_control</depend>
   <depend>geometry_msgs</depend>
   <depend>image_transport</depend>
   <depend>nav_msgs</depend>
   <depend>params_manager</depend>
+  <depend>polynomial_kit</depend>
   <depend>pose_kit</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>

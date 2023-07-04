@@ -51,6 +51,9 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <dynamic_systems_control/control_lib.hpp>
+#include <dynamic_systems_control/lti.hpp>
+
 #include <dua_interfaces/msg/point_cloud2_with_roi.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -166,6 +169,10 @@ private:
   sl::Mat depth_point_cloud_;
   PoseKit::Pose depth_curr_pose_;
 
+  /* IMU filters and data. */
+  std::array<DynamicSystems::Control::LTISystem, 3> gyro_filters_;
+  std::array<DynamicSystems::Control::LTISystem, 3> accel_filters_;
+
   /* Node parameters. */
   bool autostart_;
   int64_t confidence_ = 50;
@@ -174,6 +181,11 @@ private:
   int64_t depth_rate_ = 0;
   std::vector<int64_t> depth_resolution_ = {0, 0};
   int fps_ = 15;
+  double imu_filters_sampling_time_ = 0.0;
+  int64_t imu_filters_zoh_steps_ = 0;
+  int64_t imu_filters_order_ = 0;
+  std::vector<double> imu_filters_low_freqs_ = {0.0, 0.0};
+  std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
   std::string link_namespace_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   std::vector<double> roi_box_sizes_;

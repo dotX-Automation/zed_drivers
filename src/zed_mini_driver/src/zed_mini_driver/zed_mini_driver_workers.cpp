@@ -161,7 +161,9 @@ void ZEDMiniDriverNode::camera_routine()
 
     if (((curr_ts - last_video_ts_) >= video_period) ||
       (video_rate_ == 0) ||
-      (video_rate_ >= fps_))
+      (video_rate_ >= fps_) ||
+      left_rect_pub_->getNumSubscribers() ||
+      right_rect_pub_->getNumSubscribers())
     {
       // Process and publish RGB frames
       // This is the sequence, for each stream:
@@ -179,7 +181,10 @@ void ZEDMiniDriverNode::camera_routine()
       {
         // HD streams
         if (left_rect_pub_->getNumSubscribers() ||
-          (left_stream_pub_->getNumSubscribers() && stream_hd_))
+          (left_stream_pub_->getNumSubscribers() && stream_hd_ &&
+          (((curr_ts - last_video_ts_) >= video_period) ||
+          (video_rate_ == 0) ||
+          (video_rate_ >= fps_))))
         {
           zed_.retrieveImage(left_frame, sl::VIEW::LEFT, sl::MEM::CPU, camera_res);
 
@@ -204,14 +209,21 @@ void ZEDMiniDriverNode::camera_routine()
           }
 
           // left_stream
-          if (left_stream_pub_->getNumSubscribers() && stream_hd_) {
+          if (left_stream_pub_->getNumSubscribers() && stream_hd_ &&
+            (((curr_ts - last_video_ts_) >= video_period) ||
+            (video_rate_ == 0) ||
+            (video_rate_ >= fps_)))
+          {
             left_stream_pub_->publish(*left_frame_msg);
           }
         }
 
         // SD streams
-        if (left_rect_sd_pub_->getNumSubscribers() ||
-          (left_stream_pub_->getNumSubscribers() && !stream_hd_))
+        if ((left_rect_sd_pub_->getNumSubscribers() ||
+          (left_stream_pub_->getNumSubscribers() && !stream_hd_)) &&
+          (((curr_ts - last_video_ts_) >= video_period) ||
+          (video_rate_ == 0) ||
+          (video_rate_ >= fps_)))
         {
           zed_.retrieveImage(left_frame_sd, sl::VIEW::LEFT, sl::MEM::CPU, sd_res);
 
@@ -250,7 +262,10 @@ void ZEDMiniDriverNode::camera_routine()
       {
         // HD streams
         if (right_rect_pub_->getNumSubscribers() ||
-          (right_stream_pub_->getNumSubscribers() && stream_hd_))
+          (right_stream_pub_->getNumSubscribers() && stream_hd_ &&
+          (((curr_ts - last_video_ts_) >= video_period) ||
+          (video_rate_ == 0) ||
+          (video_rate_ >= fps_))))
         {
           zed_.retrieveImage(right_frame, sl::VIEW::RIGHT, sl::MEM::CPU, camera_res);
 
@@ -275,14 +290,21 @@ void ZEDMiniDriverNode::camera_routine()
           }
 
           // right_stream
-          if (right_stream_pub_->getNumSubscribers() && stream_hd_) {
+          if (right_stream_pub_->getNumSubscribers() && stream_hd_ &&
+            (((curr_ts - last_video_ts_) >= video_period) ||
+            (video_rate_ == 0) ||
+            (video_rate_ >= fps_)))
+          {
             right_stream_pub_->publish(*right_frame_msg);
           }
         }
 
         // SD streams
-        if (right_rect_sd_pub_->getNumSubscribers() ||
-          (right_stream_pub_->getNumSubscribers() && !stream_hd_))
+        if ((right_rect_sd_pub_->getNumSubscribers() ||
+          (right_stream_pub_->getNumSubscribers() && !stream_hd_)) &&
+          (((curr_ts - last_video_ts_) >= video_period) ||
+          (video_rate_ == 0) ||
+          (video_rate_ >= fps_)))
         {
           zed_.retrieveImage(right_frame_sd, sl::VIEW::RIGHT, sl::MEM::CPU, sd_res);
 
@@ -314,7 +336,9 @@ void ZEDMiniDriverNode::camera_routine()
         }
       }
 
-      last_video_ts_ = curr_ts;
+      if ((curr_ts - last_video_ts_) >= video_period) {
+        last_video_ts_ = curr_ts;
+      }
     }
   }
 

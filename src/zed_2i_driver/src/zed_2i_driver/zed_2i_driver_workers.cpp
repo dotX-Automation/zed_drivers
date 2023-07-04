@@ -79,21 +79,13 @@ void ZED2iDriverNode::camera_routine()
   sl::ERROR_CODE err;
   sl::RuntimeParameters runtime_params;
   runtime_params.measure3D_reference_frame = sl::REFERENCE_FRAME::WORLD;
+  runtime_params.enable_depth = true;
   runtime_params.enable_fill_mode = false;
   runtime_params.remove_saturated_areas = true;
   while (running_.load(std::memory_order_acquire)) {
     // Grab data
     runtime_params.confidence_threshold = static_cast<int>(confidence_);
     runtime_params.texture_confidence_threshold = static_cast<int>(texture_confidence_);
-    if ((depth_mode_ != sl::DEPTH_MODE::NONE) &&
-      (((curr_ts - last_depth_ts_) >= depth_period) ||
-      (depth_rate_ == 0) ||
-      (depth_rate_ >= fps_)))
-    {
-      runtime_params.enable_depth = true;
-    } else {
-      runtime_params.enable_depth = false;
-    }
     err = zed_.grab(runtime_params);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_FATAL(

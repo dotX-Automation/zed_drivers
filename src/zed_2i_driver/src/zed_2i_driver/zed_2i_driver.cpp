@@ -144,6 +144,11 @@ void ZED2iDriverNode::init_publishers()
     "~/imu",
     DUAQoS::get_datum_qos(5));
 
+  // imu_filtered
+  imu_filtered_pub_ = this->create_publisher<Imu>(
+    "~/imu_filtered",
+    DUAQoS::get_datum_qos(5));
+
   // point_cloud
   point_cloud_pub_ = this->create_publisher<PointCloud2>(
     "~/point_cloud",

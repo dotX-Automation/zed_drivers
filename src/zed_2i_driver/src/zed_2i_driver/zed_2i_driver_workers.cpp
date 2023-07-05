@@ -510,49 +510,73 @@ void ZED2iDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
   // Process IMU data
   sl::SensorsData::IMUData imu_data = sensors_data.imu;
   if (imu_data.is_available) {
-    Imu imu_msg{};
+    Imu imu_msg{}, imu_filtered_msg{};
     imu_msg.header.stamp.set__sec(static_cast<int32_t>(imu_data.timestamp.getSeconds()));
     imu_msg.header.stamp.set__nanosec(
       static_cast<uint32_t>(imu_data.timestamp.getNanoseconds() % uint64_t(1e9)));
     imu_msg.header.set__frame_id(link_namespace_ + "zed2i_imu_link");
+    imu_filtered_msg.header.stamp.set__sec(static_cast<int32_t>(imu_data.timestamp.getSeconds()));
+    imu_filtered_msg.header.stamp.set__nanosec(
+      static_cast<uint32_t>(imu_data.timestamp.getNanoseconds() % uint64_t(1e9)));
+    imu_filtered_msg.header.set__frame_id(link_namespace_ + "zed2i_imu_link");
 
     imu_msg.orientation.set__w(static_cast<double>(imu_data.pose.getOrientation().ow));
     imu_msg.orientation.set__x(static_cast<double>(imu_data.pose.getOrientation().ox));
     imu_msg.orientation.set__y(static_cast<double>(imu_data.pose.getOrientation().oy));
     imu_msg.orientation.set__z(static_cast<double>(imu_data.pose.getOrientation().oz));
+    imu_filtered_msg.orientation.set__w(static_cast<double>(imu_data.pose.getOrientation().ow));
+    imu_filtered_msg.orientation.set__x(static_cast<double>(imu_data.pose.getOrientation().ox));
+    imu_filtered_msg.orientation.set__y(static_cast<double>(imu_data.pose.getOrientation().oy));
+    imu_filtered_msg.orientation.set__z(static_cast<double>(imu_data.pose.getOrientation().oz));
 
     for (int i = 0; i < 9; ++i) {
       imu_msg.orientation_covariance[i] = static_cast<double>(imu_data.pose_covariance.r[i]);
+      imu_filtered_msg.orientation_covariance[i] =
+        static_cast<double>(imu_data.pose_covariance.r[i]);
     }
 
     imu_msg.angular_velocity.set__x(
-      gyro_filters_[0].evolve(
-        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.x))(0, 0));
+      static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity.x));
     imu_msg.angular_velocity.set__y(
-      gyro_filters_[1].evolve(
-        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.y))(0, 0));
+      static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity.y));
     imu_msg.angular_velocity.set__z(
+      static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity.z));
+    imu_filtered_msg.angular_velocity.set__x(
+      gyro_filters_[0].evolve(
+        static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity.x))(0, 0));
+    imu_filtered_msg.angular_velocity.set__y(
+      gyro_filters_[1].evolve(
+        static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity.y))(0, 0));
+    imu_filtered_msg.angular_velocity.set__z(
       gyro_filters_[2].evolve(
-        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity.z))(0, 0));
+        static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity.z))(0, 0));
 
     for (int i = 0; i < 9; ++i) {
       imu_msg.angular_velocity_covariance[i] =
-        static_cast<double>((M_PI / 180.0) * imu_data.angular_velocity_covariance.r[i]);
+        static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity_covariance.r[i]);
+      imu_filtered_msg.angular_velocity_covariance[i] =
+        static_cast<double>((M_PIf32 / 180.0f) * imu_data.angular_velocity_covariance.r[i]);
     }
 
-    imu_msg.linear_acceleration.set__x(
+    imu_msg.linear_acceleration.set__x(static_cast<double>(imu_data.linear_acceleration.x));
+    imu_msg.linear_acceleration.set__y(static_cast<double>(imu_data.linear_acceleration.y));
+    imu_msg.linear_acceleration.set__z(static_cast<double>(imu_data.linear_acceleration.z));
+    imu_filtered_msg.linear_acceleration.set__x(
       accel_filters_[0].evolve(static_cast<double>(imu_data.linear_acceleration.x))(0, 0));
-    imu_msg.linear_acceleration.set__y(
+    imu_filtered_msg.linear_acceleration.set__y(
       accel_filters_[1].evolve(static_cast<double>(imu_data.linear_acceleration.y))(0, 0));
-    imu_msg.linear_acceleration.set__z(
+    imu_filtered_msg.linear_acceleration.set__z(
       accel_filters_[2].evolve(static_cast<double>(imu_data.linear_acceleration.z))(0, 0));
 
     for (int i = 0; i < 9; ++i) {
       imu_msg.linear_acceleration_covariance[i] =
         static_cast<double>(imu_data.linear_acceleration_covariance.r[i]);
+      imu_filtered_msg.linear_acceleration_covariance[i] =
+        static_cast<double>(imu_data.linear_acceleration_covariance.r[i]);
     }
 
     imu_pub_->publish(imu_msg);
+    imu_filtered_pub_->publish(imu_filtered_msg);
   }
 }
 

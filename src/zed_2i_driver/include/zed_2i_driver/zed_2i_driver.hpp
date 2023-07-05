@@ -117,6 +117,7 @@ private:
   rclcpp::Publisher<Odometry>::SharedPtr camera_odom_pub_;
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr camera_pose_pub_;
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
+  rclcpp::Publisher<Imu>::SharedPtr imu_filtered_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
   rclcpp::Publisher<PointCloud2WithROI>::SharedPtr point_cloud_roi_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr rviz_base_link_odom_pub_;

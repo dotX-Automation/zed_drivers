@@ -248,9 +248,7 @@ void ZEDMiniDriverNode::camera_routine()
 
           if (!record_path_.empty()) {
             std::string filename = record_path_ + "/left_";
-            filename += std::to_string(
-              left_frame_msg->header.stamp.sec * 1000000000 +
-              left_frame_msg->header.stamp.nanosec);
+            filename += std::to_string(left_frame.timestamp.getNanoseconds());
             filename += ".jpg";
             cv::imwrite(filename, left_frame_cv_bgr);
           }
@@ -340,9 +338,7 @@ void ZEDMiniDriverNode::camera_routine()
 
           if (!record_path_.empty()) {
             std::string filename = record_path_ + "/right_";
-            filename += std::to_string(
-              right_frame_msg->header.stamp.sec * 1000000000 +
-              right_frame_msg->header.stamp.nanosec);
+            filename += std::to_string(right_frame.timestamp.getNanoseconds());
             filename += ".jpg";
             cv::imwrite(filename, right_frame_cv_bgr);
           }

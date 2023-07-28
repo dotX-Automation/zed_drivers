@@ -189,7 +189,8 @@ void ZEDMiniDriverNode::camera_routine()
       (video_rate_ == 0) ||
       (video_rate_ >= fps_) ||
       left_rect_pub_->getNumSubscribers() ||
-      right_rect_pub_->getNumSubscribers())
+      right_rect_pub_->getNumSubscribers() ||
+      !record_path_.empty())
     {
       // Process and publish RGB frames
       // This is the sequence, for each stream:
@@ -203,10 +204,12 @@ void ZEDMiniDriverNode::camera_routine()
       // Left streams
       if (left_rect_pub_->getNumSubscribers() ||
         left_rect_sd_pub_->getNumSubscribers() ||
-        left_stream_pub_->getNumSubscribers())
+        left_stream_pub_->getNumSubscribers() ||
+        !record_path_.empty())
       {
         // HD streams
         if (left_rect_pub_->getNumSubscribers() ||
+          !record_path_.empty() ||
           (left_stream_pub_->getNumSubscribers() && stream_hd_ &&
           (((curr_ts - last_video_ts_) >= video_period) ||
           (video_rate_ == 0) ||
@@ -293,10 +296,12 @@ void ZEDMiniDriverNode::camera_routine()
       // Right streams
       if (right_rect_pub_->getNumSubscribers() ||
         right_rect_sd_pub_->getNumSubscribers() ||
-        right_stream_pub_->getNumSubscribers())
+        right_stream_pub_->getNumSubscribers() ||
+        !record_path_.empty())
       {
         // HD streams
         if (right_rect_pub_->getNumSubscribers() ||
+          !record_path_.empty() ||
           (right_stream_pub_->getNumSubscribers() && stream_hd_ &&
           (((curr_ts - last_video_ts_) >= video_period) ||
           (video_rate_ == 0) ||

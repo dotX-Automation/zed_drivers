@@ -249,7 +249,7 @@ void ZED2iDriverNode::camera_routine()
           if (!record_path_.empty()) {
             std::string filename = record_path_ + "/left_";
             filename += std::to_string(
-              left_frame_msg->header.stamp.sec * 1e9 +
+              left_frame_msg->header.stamp.sec * 1000000000 +
               left_frame_msg->header.stamp.nanosec);
             filename += ".jpg";
             cv::imwrite(filename, left_frame_cv_bgr);
@@ -341,7 +341,7 @@ void ZED2iDriverNode::camera_routine()
           if (!record_path_.empty()) {
             std::string filename = record_path_ + "/right_";
             filename += std::to_string(
-              right_frame_msg->header.stamp.sec * 1e9 +
+              right_frame_msg->header.stamp.sec * 1000000000 +
               right_frame_msg->header.stamp.nanosec);
             filename += ".jpg";
             cv::imwrite(filename, right_frame_cv_bgr);

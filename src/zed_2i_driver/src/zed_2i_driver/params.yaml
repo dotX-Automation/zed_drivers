@@ -187,6 +187,14 @@ params:
     read_only: true
     var_name: link_namespace_
 
+  record_path:
+    type: string
+    default_value: ""
+    description: "Path to the folder where to save video frames"
+    constraints: "Must be a valid path, if empty no recording will be done"
+    read_only: false
+    var_name: record_path_
+
   resolution:
     type: string
     default_value: HD720

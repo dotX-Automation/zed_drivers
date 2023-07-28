@@ -188,6 +188,7 @@ private:
   std::vector<double> imu_filters_low_freqs_ = {0.0, 0.0};
   std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
   std::string link_namespace_ = "";
+  std::string record_path_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   std::vector<double> roi_box_sizes_;
   std::vector<int64_t> sd_resolution_ = {0, 0};

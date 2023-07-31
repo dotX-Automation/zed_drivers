@@ -206,7 +206,7 @@ void ZEDMiniDriverNode::init_publishers()
     image_transport::create_camera_publisher(
       this,
       "~/left/sd/image_rect_color",
-      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+      DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
 
   // right/image_rect_color
   right_rect_pub_ = std::make_shared<image_transport::CameraPublisher>(
@@ -220,19 +220,19 @@ void ZEDMiniDriverNode::init_publishers()
     image_transport::create_camera_publisher(
       this,
       "~/right/sd/image_rect_color",
-      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+      DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
 
   // left stream
   left_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
     "~/left/image_rect_color",
-    DUAQoS::get_image_qos().get_rmw_qos_profile());
+    DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile());
 
   // right stream
   right_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
     "~/right/image_rect_color",
-    DUAQoS::get_image_qos().get_rmw_qos_profile());
+    DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile());
 
   // depth
   depth_pub_ = std::make_shared<image_transport::Publisher>(

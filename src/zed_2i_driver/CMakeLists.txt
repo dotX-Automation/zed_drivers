@@ -47,7 +47,6 @@ find_package(dua_app_management REQUIRED)
 find_package(dua_interfaces REQUIRED)
 find_package(dua_node REQUIRED)
 find_package(dua_qos REQUIRED)
-find_package(dynamic_systems_base REQUIRED)
 find_package(dynamic_systems_control REQUIRED)
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(geometry_msgs REQUIRED)
@@ -55,7 +54,6 @@ find_package(image_transport REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(params_manager REQUIRED)
-find_package(polynomial_kit REQUIRED)
 find_package(pose_kit REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -105,13 +103,11 @@ ament_target_dependencies(zed_2i_driver
   dua_interfaces
   dua_node
   dua_qos
-  dynamic_systems_base
   dynamic_systems_control
   geometry_msgs
   image_transport
   nav_msgs
   params_manager
-  polynomial_kit
   pose_kit
   rclcpp
   rclcpp_components

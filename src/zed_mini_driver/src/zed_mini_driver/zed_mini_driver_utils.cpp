@@ -274,6 +274,8 @@ bool ZEDMiniDriverNode::validate_depth_mode(const rclcpp::Parameter & p)
     depth_mode_ = sl::DEPTH_MODE::ULTRA;
   } else if (depth_mode == "NEURAL") {
     depth_mode_ = sl::DEPTH_MODE::NEURAL;
+  } else if (depth_mode == "NONE") {
+    depth_mode_ = sl::DEPTH_MODE::NONE;
   } else {
     RCLCPP_ERROR(
       this->get_logger(),

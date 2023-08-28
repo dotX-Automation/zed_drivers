@@ -17,6 +17,7 @@
     global_frame: map
     link_namespace: ''
     odometry_frame: odom
+    publish_tf: true
     resolution: VGA
     roi_box_sizes:
     - 4.0

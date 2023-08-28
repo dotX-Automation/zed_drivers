@@ -533,6 +533,14 @@ PoseKit::Pose ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
   rviz_camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
 
+  // Publish odom -> base_link transform
+  if (publish_tf_) {
+    TransformStamped odom_to_base_link = tf2::eigenToTransform(base_link_pose.get_isometry());
+    odom_to_base_link.set__header(base_link_pose.get_header());
+    odom_to_base_link.set__child_frame_id(link_namespace_ + "base_link");
+    tf_broadcaster_->sendTransform(odom_to_base_link);
+  }
+
   return zed_pose;
 }
 

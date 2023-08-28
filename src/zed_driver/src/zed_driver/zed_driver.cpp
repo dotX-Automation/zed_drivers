@@ -80,6 +80,7 @@ ZEDDriverNode::~ZEDDriverNode()
 
   // Stop TF listeners
   tf_listener_.reset();
+  tf_broadcaster_.reset();
   tf_buffer_.reset();
 
   // Destroy semaphores
@@ -264,6 +265,7 @@ void ZEDDriverNode::init_tf2()
 {
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 }
 
 } // namespace ZEDDriver

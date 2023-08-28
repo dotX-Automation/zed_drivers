@@ -203,6 +203,14 @@ params:
     read_only: true
     var_name: odom_frame_
 
+  publish_tf:
+    type: bool
+    default_value: false
+    description: "Publishes the odom -> base_link TF"
+    constraints: ""
+    read_only: false
+    var_name: publish_tf_
+
   record_path:
     type: string
     default_value: ""

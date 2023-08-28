@@ -47,7 +47,9 @@
 #include <theora_wrappers/publisher.hpp>
 
 #include <tf2/exceptions.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
 #include <dynamic_systems_control/control_lib.hpp>
@@ -97,7 +99,7 @@ private:
   void init_services();
   void init_tf2();
 
-  /* TF listeners, timer, and related data. */
+  /* TF listeners, broadcaster, and related data. */
   std::string camera_name_;
   std::string camera_frame_;
   std::string camera_odom_frame_;
@@ -106,6 +108,7 @@ private:
   std::string camera_imu_frame_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   /* Topic publishers. */
   rclcpp::Publisher<Odometry>::SharedPtr base_link_odom_pub_;
@@ -187,6 +190,7 @@ private:
   std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
   std::string link_namespace_ = "";
   std::string odom_frame_ = "";
+  bool publish_tf_ = false;
   std::string record_path_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   std::vector<double> roi_box_sizes_;

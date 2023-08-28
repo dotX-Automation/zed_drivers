@@ -4,11 +4,13 @@ ROS 2 drivers and software packages for the Stereolabs ZED cameras.
 
 ## Contents
 
-TODO
+- [`zed_driver`](src/zed_driver/README.md): General-purpose ROS 2 driver for the ZED cameras.
 
 ## Usage
 
-TODO
+All packages in this repository are ROS 2 packages that build inside an environment configured with the ZED SDK and all of its dependencies.
+
+The DUA containers provided here are configured to build the packages in this repository.
 
 ### DUA integration
 
@@ -18,7 +20,7 @@ It is an independent unit that can also be used as a module in a larger project.
 
 #### Supported targets
 
-The following targets are supported:
+The following DUA targets are supported:
 
 - [x] `x86-cudev`
 - [x] `jetson5c7`

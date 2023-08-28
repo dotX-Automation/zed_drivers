@@ -262,24 +262,8 @@ void ZEDDriverNode::init_services()
  */
 void ZEDDriverNode::init_tf2()
 {
-  // Initialize TF buffers and listeners
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
-  // Initialize local data
-  odom_to_camera_odom_.header.set__frame_id(odom_frame_);
-  odom_to_camera_odom_.set__child_frame_id(camera_odom_frame_);
-  map_to_camera_odom_.header.set__frame_id(global_frame_);
-  map_to_camera_odom_.set__child_frame_id(camera_odom_frame_);
-  base_link_to_camera_.header.set__frame_id(link_namespace_ + "base_link");
-  base_link_to_camera_.set__child_frame_id(link_namespace_ + "zed2i_link");
-
-  // Initlaize TF timer
-  tf_timer_ = this->create_wall_timer(
-    std::chrono::seconds(1),
-    std::bind(
-      &ZEDDriverNode::tf_timer_callback,
-      this));
 }
 
 } // namespace ZEDDriver

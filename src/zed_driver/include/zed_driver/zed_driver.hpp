@@ -106,12 +106,6 @@ private:
   std::string camera_imu_frame_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-  std::mutex tf_lock_;
-  TransformStamped odom_to_camera_odom_{};
-  TransformStamped base_link_to_camera_{};
-  TransformStamped map_to_camera_odom_{};
-  rclcpp::TimerBase::SharedPtr tf_timer_;
-  void tf_timer_callback();
 
   /* Topic publishers. */
   rclcpp::Publisher<Odometry>::SharedPtr base_link_odom_pub_;

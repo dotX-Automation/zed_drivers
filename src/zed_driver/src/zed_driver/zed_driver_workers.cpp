@@ -406,7 +406,7 @@ void ZEDDriverNode::camera_routine()
 /**
  * @brief Processes positional tracking data.
  *
- * @param zed_pose ZED positional tracking data.
+ * @param camera_pose ZED positional tracking data.
  *
  * @return Current camera pose in zedm_odom frame.
  */
@@ -469,32 +469,45 @@ PoseKit::Pose ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
     std::array<double, 36>{},
     twist_covariance);
 
-  // Get base_link pose
-  PoseKit::Pose base_link_pose = zed_pose;
+  // Get latest base_link -> camera transform
+  TransformStamped base_link_to_camera{};
   try {
-    tf_lock_.lock();
-    base_link_pose.track_parent(odom_to_camera_odom_);
-    tf_lock_.unlock();
+    base_link_to_camera = tf_buffer_->lookupTransform(
+      link_namespace_ + "base_link",
+      camera_frame_,
+      zed_pose.get_header().stamp,
+      tf2::durationFromSec(0.1));
+  } catch (const tf2::TransformException & e) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "ZEDDriverNode::positional_tracking: TF exception: %s",
+      e.what());
+  }
+
+  // Get base_link pose
+  // For a moment, pretend that the frame_id denotes the child frame for this data,
+  // only to make track_parent work
+  PoseKit::Pose base_link_pose = zed_pose;
+  base_link_pose.set_frame_id(camera_frame_);
+  try {
+    base_link_pose.track_parent(base_link_to_camera);
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       this->get_logger(),
       "ZEDDriverNode::camera_routine: base_link_pose::track_parent: %s",
       e.what());
-    tf_lock_.unlock();
   }
+  base_link_pose.set_frame_id(odom_frame_);
 
   // Get base_link twist
   PoseKit::KinematicPose base_link_twist = zed_twist;
   try {
-    tf_lock_.lock();
-    base_link_twist.track_parent(base_link_to_camera_);
-    tf_lock_.unlock();
+    base_link_twist.track_parent(base_link_to_camera);
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
       this->get_logger(),
       "ZEDDriverNode::camera_routine: base_link_twist::track_parent: %s",
       e.what());
-    tf_lock_.unlock();
   }
 
   // Build odometry messages
@@ -632,10 +645,21 @@ void ZEDDriverNode::depth_routine()
     }
 
     // Get latest global -> camera_odom transform
-    tf_lock_.lock();
-    Eigen::Isometry3f map_to_camera_odom_iso =
-      tf2::transformToEigen(map_to_camera_odom_).cast<float>();
-    tf_lock_.unlock();
+    TransformStamped global_to_camera_odom{};
+    try {
+      global_to_camera_odom = tf_buffer_->lookupTransform(
+        global_frame_,
+        camera_odom_frame_,
+        depth_msg->header.stamp,
+        tf2::durationFromSec(0.1));
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "ZEDDriverNode::depth_routine: TF exception: %s",
+        e.what());
+    }
+    Eigen::Isometry3f global_to_camera_odom_iso =
+      tf2::transformToEigen(global_to_camera_odom).cast<float>();
     Eigen::Isometry3f camera_odom_to_camera_iso = depth_curr_pose_.get_isometry().cast<float>();
 
     // Get ROI box sizes and corner points
@@ -682,7 +706,7 @@ void ZEDDriverNode::depth_routine()
     uint32_t pc_length =
       static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight());
     Eigen::MatrixXf pc_transform = Eigen::MatrixXf::Zero(7, 7);
-    pc_transform.block<4, 4>(0, 0) = map_to_camera_odom_iso.matrix();
+    pc_transform.block<4, 4>(0, 0) = global_to_camera_odom_iso.matrix();
     pc_transform.block<1, 3>(4, 4) = ic.transpose();
     pc_transform.block<1, 3>(5, 4) = jc.transpose();
     pc_transform.block<1, 3>(6, 4) = kc.transpose();
@@ -691,10 +715,10 @@ void ZEDDriverNode::depth_routine()
     PointCloud2 pc_msg{}, pc_roi_msg{};
     PointCloud2WithROI pc_with_roi_msg{};
     std::array<Eigen::Vector4f, 4> roi_corners_map = {
-      map_to_camera_odom_iso * p0_om,
-      map_to_camera_odom_iso * p1_om,
-      map_to_camera_odom_iso * p2_om,
-      map_to_camera_odom_iso * p3_om};
+      global_to_camera_odom_iso * p0_om,
+      global_to_camera_odom_iso * p1_om,
+      global_to_camera_odom_iso * p2_om,
+      global_to_camera_odom_iso * p3_om};
     pc_with_roi_msg.set__culled(true);
     pc_with_roi_msg.roi.set__type(dua_interfaces::msg::RegionOfInterest::BOX);
     for (int i = 0; i < 4; ++i) {
@@ -830,7 +854,7 @@ void ZEDDriverNode::depth_routine()
     // Compute ROI box center in global frame
     Eigen::Isometry3f roi_center_iso = Eigen::Isometry3f::Identity();
     roi_center_iso.pretranslate(Eigen::Vector3f(roi_box_sizes_[0] / 2.0f, 0.0f, 0.0f));
-    roi_center_iso = map_to_camera_odom_iso * camera_odom_to_camera_iso * roi_center_iso;
+    roi_center_iso = global_to_camera_odom_iso * camera_odom_to_camera_iso * roi_center_iso;
     Eigen::Quaternionf roi_center_orientation(roi_center_iso.rotation());
 
     // Publish the current ROI for visualization

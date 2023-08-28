@@ -60,11 +60,11 @@ params:
   depth_rate:
     type: integer
     default_value: 0
-    min_value: 0
+    min_value: -1
     max_value: 100
     step: 1
     description: "Depth stream publishing rate (for undersampling)"
-    constraints: "Changes require camera restart, 0 or >fps mean no undersampling"
+    constraints: "Changes require camera restart, 0 or >=fps mean no undersampling, -1 means no depth processing"
     read_only: false
     var_name: depth_rate_
 

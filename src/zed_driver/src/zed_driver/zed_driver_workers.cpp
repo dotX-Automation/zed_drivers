@@ -149,13 +149,17 @@ void ZEDDriverNode::camera_routine()
 
     curr_ts = this->get_clock()->now();
 
+    // Process and publish depth data iff:
+    // - Depth is enabled at runtime (i.e. now)
+    // - Depth mode is not NONE
+    // - Depth rate is not negative, so the user did not disable depth data processing
+    // - Undersampling is enabled and the period has elapsed, or it is disabled
     if (runtime_params.enable_depth &&
-      camera_pose.valid &&
       (depth_mode_ != sl::DEPTH_MODE::NONE) &&
+      (depth_rate_ >= 0) &&
       (((curr_ts - last_depth_ts_) >= depth_period) ||
       (depth_rate_ == 0) ||
-      (depth_rate_ >= fps_)) &&
-      (sem_trywait(&depth_sem_1_) == 0))
+      (depth_rate_ >= fps_)))
     {
       // Get depth data and post it for processing
       err = zed_.retrieveImage(depth_map_view_, sl::VIEW::DEPTH, sl::MEM::CPU, depth_res);
@@ -176,6 +180,8 @@ void ZEDDriverNode::camera_routine()
         sem_post(&depth_sem_1_);
         continue;
       }
+
+      sem_wait(&depth_sem_1_);
       depth_curr_pose_ = curr_pose;
       last_depth_ts_ = curr_ts;
       sem_post(&depth_sem_2_);
@@ -386,6 +392,7 @@ void ZEDDriverNode::camera_routine()
   // Release memory of shared resources
   depth_map_view_.free(sl::MEM::CPU);
   depth_point_cloud_.free(sl::MEM::CPU);
+  // TODO Free RGB frames
 
   // Join depth processing thread
   sem_post(&depth_sem_2_);

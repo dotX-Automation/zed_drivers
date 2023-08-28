@@ -109,13 +109,12 @@ void ZEDDriverNode::camera_routine()
     runtime_params.texture_confidence_threshold = static_cast<int>(texture_confidence_);
     err = zed_.grab(runtime_params);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_FATAL(
+      RCLCPP_ERROR(
         this->get_logger(),
         "ZEDDriverNode::camera_routine: Failed to grab data (%d): %s",
         static_cast<int>(err),
         sl::toString(err).c_str());
-      running_.store(false, std::memory_order_release);
-      break;
+      continue;
     }
 
     // Get positional tracking data

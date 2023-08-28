@@ -61,16 +61,6 @@ bool ZEDDriverNode::open_camera()
     init_params.input = input_type;
   }
 
-  // Camera positional tracking parameters
-  sl::PositionalTrackingParameters tracking_params;
-  tracking_params.enable_area_memory = true;
-  tracking_params.enable_pose_smoothing = true;
-  tracking_params.set_floor_as_origin = false;
-  tracking_params.enable_imu_fusion = true;
-  tracking_params.set_as_static = false;
-  tracking_params.depth_min_range = -1.0f;
-  tracking_params.set_gravity_as_origin = true;
-
   sl::ERROR_CODE err;
 
   // Open the camera
@@ -85,15 +75,26 @@ bool ZEDDriverNode::open_camera()
   }
 
   // Enable positional tracking
-  err = zed_.enablePositionalTracking(tracking_params);
-  if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "ZEDDriverNode::open_camera: Failed to enable positional tracking (%d): %s",
-      static_cast<int>(err),
-      sl::toString(err).c_str());
-    zed_.close();
-    return false;
+  if (enable_tracking_) {
+    sl::PositionalTrackingParameters tracking_params;
+    tracking_params.enable_area_memory = true;
+    tracking_params.enable_pose_smoothing = true;
+    tracking_params.set_floor_as_origin = false;
+    tracking_params.enable_imu_fusion = true;
+    tracking_params.set_as_static = false;
+    tracking_params.depth_min_range = -1.0f;
+    tracking_params.set_gravity_as_origin = true;
+
+    err = zed_.enablePositionalTracking(tracking_params);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "ZEDDriverNode::open_camera: Failed to enable positional tracking (%d): %s",
+        static_cast<int>(err),
+        sl::toString(err).c_str());
+      zed_.close();
+      return false;
+    }
   }
 
   sl::CameraInformation zed_info = zed_.getCameraInformation();
@@ -310,6 +311,25 @@ bool ZEDDriverNode::validate_depth_mode(const rclcpp::Parameter & p)
       depth_mode.c_str());
     return false;
   }
+  return true;
+}
+
+/**
+ * @brief Validates the enable_tracking parameter.
+ *
+ * @param p Parameter to validate.
+ * @return True if the parameter is valid, false otherwise.
+ */
+bool ZEDDriverNode::validate_enable_tracking(const rclcpp::Parameter & p)
+{
+  if (running_.load(std::memory_order_acquire)) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "ZEDDriverNode::validate_enable_tracking: Cannot change enable_tracking while the camera is active");
+    return false;
+  }
+
+  enable_tracking_ = p.as_bool();
   return true;
 }
 

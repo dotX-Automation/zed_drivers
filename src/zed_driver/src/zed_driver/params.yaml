@@ -24,18 +24,10 @@ params:
     min_value: 0
     max_value: 100
     step: 1
-    description: "Depth onfidence threshold"
+    description: "Depth confidence threshold"
     constraints: "Must be a valid confidence threshold for the ZED camera"
     read_only: false
     var_name: confidence_
-
-  delayed_tracking:
-    type: bool
-    default_value: false
-    description: "Delays tracking when depth is enabled, to allow for continuous video streams on slower hardware"
-    constraints: "Changes require camera restart, use only when depth is enabled"
-    read_only: false
-    var_name: delayed_tracking_
 
   depth_max_distance:
     type: double
@@ -108,6 +100,14 @@ params:
     description: "Maximum number of cores to use for Eigen library"
     constraints: "Changes require full restart, 0 means no change, must be a valid number of cores depending on the system, pay attention to set this to the same amount if you load this node with others that do the same"
     read_only: true
+
+  enable_tracking:
+    type: bool
+    default_value: false
+    description: "Enables tracking module"
+    constraints: "Can only be changed while the camera is not active"
+    read_only: false
+    validator: validate_enable_tracking
 
   fps:
     type: integer

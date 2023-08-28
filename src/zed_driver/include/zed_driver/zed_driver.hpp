@@ -180,10 +180,10 @@ private:
   /* Node parameters. */
   bool autostart_;
   int64_t confidence_ = 50;
-  bool delayed_tracking_ = false;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;
   std::vector<int64_t> depth_resolution_ = {0, 0};
+  bool enable_tracking_ = false;
   int fps_ = 15;
   std::string global_frame_ = "";
   double imu_filters_sampling_time_ = 0.0;
@@ -204,6 +204,7 @@ private:
 
   /* Node parameters validators. */
   bool validate_depth_mode(const rclcpp::Parameter & p);
+  bool validate_enable_tracking(const rclcpp::Parameter & p);
   bool validate_fps(const rclcpp::Parameter & p);
   bool validate_resolution(const rclcpp::Parameter & p);
 

@@ -105,10 +105,6 @@ void ZEDDriverNode::camera_routine()
   runtime_params.remove_saturated_areas = true;
   while (running_.load(std::memory_order_acquire)) {
     // Grab data
-    if (delayed_tracking_) {
-      // TODO Remove
-      runtime_params.enable_depth = !runtime_params.enable_depth;
-    }
     runtime_params.confidence_threshold = static_cast<int>(confidence_);
     runtime_params.texture_confidence_threshold = static_cast<int>(texture_confidence_);
     err = zed_.grab(runtime_params);
@@ -123,9 +119,7 @@ void ZEDDriverNode::camera_routine()
     }
 
     // Get positional tracking data
-    // TODO Redo without delayed_tracking
-    // TODO Add enable_tracking parameter and check
-    if (runtime_params.enable_depth || depth_mode_ == sl::DEPTH_MODE::NONE) {
+    if (enable_tracking_) {
       tracking_state = zed_.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
       if (verbose_) {
         switch (tracking_state) {

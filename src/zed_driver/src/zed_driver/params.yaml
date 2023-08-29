@@ -272,6 +272,78 @@ params:
     read_only: false
     var_name: stream_hd_
 
+  streaming_adaptative_bitrate:
+    type: bool
+    default_value: true
+    description: "Enables adaptative bitrate streaming"
+    constraints: "Changes require camera restart, works only on Jetson devices"
+    read_only: false
+
+  streaming_bitrate:
+    type: integer
+    default_value: 6000
+    min_value: 100
+    max_value: 30000
+    step: 1
+    description: "Streaming bitrate [kbps]"
+    constraints: "Changes require camera restart, must be a valid bitrate for the ZED camera"
+    read_only: false
+
+  streaming_chunk_size:
+    type: integer
+    default_value: 16084
+    min_value: 1024
+    max_value: 65000
+    step: 1
+    description: "Streaming chunk size [bytes]"
+    constraints: "Changes require camera restart, lower this value if network generates a lot of packet loss"
+    read_only: false
+
+  streaming_codec:
+    type: string
+    default_value: ""
+    description: "Streaming codec"
+    constraints: "Changes require camera restart, can either be 'H264' or 'H265', leave blank to disable streaming/act as receiver"
+    read_only: false
+    validator: validate_streaming_codec
+
+  streaming_gop_size:
+    type: integer
+    default_value: 30
+    min_value: -1
+    max_value: 256
+    step: 1
+    description: "Streaming GOP size"
+    constraints: "Changes require camera restart, -1 will enable an adaptive mode limited to 2 seconds"
+    read_only: false
+
+  streaming_sender_ip:
+    type: string
+    default_value: ""
+    description: "Streaming sender IP address"
+    constraints: "Changes require camera restart, set together with codec='' to act as receiver"
+    read_only: false
+
+  streaming_sender_port:
+    type: integer
+    default_value: 30000
+    min_value: 1024
+    max_value: 65535
+    step: 1
+    description: "Streaming sender port"
+    constraints: "Changes require camera restart"
+    read_only: false
+
+  streaming_target_fps:
+    type: integer
+    default_value: 30
+    min_value: 1
+    max_value: 100
+    step: 1
+    description: "Streaming target FPS"
+    constraints: "Changes require camera restart, must be >= fps, otherwise will be set at fps"
+    read_only: false
+
   texture_confidence:
     type: integer
     default_value: 100

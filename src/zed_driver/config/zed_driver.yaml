@@ -1,7 +1,7 @@
 /zed/zed_driver:
   ros__parameters:
     autostart: true
-    camera_settings_path: ''
+    camera_settings_path: ""
     confidence: 20
     depth_max_distance: 5.0
     depth_min_distance: 0.5
@@ -15,20 +15,28 @@
     enable_tracking: true
     fps: 30
     global_frame: map
-    link_namespace: ''
+    link_namespace: ""
     odometry_frame: odom
     publish_tf: true
     resolution: VGA
     roi_box_sizes:
-    - 4.0
-    - 2.0
-    - 2.0
+      - 4.0
+      - 2.0
+      - 2.0
     sd_resolution:
       - 640
       - 360
     serial_number: -1
     stream_hd: false
+    streaming_adaptative_bitrate: true
+    streaming_bitrate: 6000
+    streaming_chunk_size: 16084
+    streaming_codec: ""
+    streaming_gop_size: 30
+    streaming_sender_ip: ""
+    streaming_sender_port: 30000
+    streaming_target_fps: 30
     texture_confidence: 100
     use_sim_time: false
-    verbose: false
+    verbose: true
     video_rate: 10

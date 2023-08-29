@@ -25,6 +25,17 @@ bool ZEDDriverNode::open_camera()
   double depth_min_distance = this->get_parameter("depth_min_distance").as_double();
   int64_t depth_stabilization = this->get_parameter("depth_stabilization").as_int();
   int64_t serial_number = this->get_parameter("serial_number").as_int();
+  std::string streaming_codec = this->get_parameter("streaming_codec").as_string();
+  std::string streaming_sender_ip = this->get_parameter("streaming_sender_ip").as_string();
+  unsigned short streaming_sender_port = this->get_parameter("streaming_sender_port").as_int();
+
+  // Detect invalid parameter configurations
+  if (!streaming_codec.empty() && !streaming_sender_ip.empty()) {
+    RCLCPP_FATAL(
+      this->get_logger(),
+      "ZEDDriverNode::open_camera: Cannot send and receive stream at the same time");
+    return false;
+  }
 
   // Camera initialization parameters
   // The rationale for this is:
@@ -52,12 +63,16 @@ bool ZEDDriverNode::open_camera()
   init_params.sensors_required = true;
   init_params.enable_image_enhancement = true;
   init_params.open_timeout_sec = 5.0f;
-  init_params.async_grab_camera_recovery = true;
+  init_params.async_grab_camera_recovery = false;
 
   // Configure input source
   if (serial_number != -1) {
     sl::InputType input_type;
     input_type.setFromSerialNumber(static_cast<unsigned int>(serial_number));
+    init_params.input = input_type;
+  } else if (!streaming_sender_ip.empty()) {
+    sl::InputType input_type;
+    input_type.setFromStream(sl::String(streaming_sender_ip.c_str()), streaming_sender_port);
     init_params.input = input_type;
   }
 
@@ -72,6 +87,29 @@ bool ZEDDriverNode::open_camera()
       static_cast<int>(err),
       sl::toString(err).c_str());
     return false;
+  }
+
+  // Enable streaming as sender
+  if (!streaming_codec.empty()) {
+    sl::StreamingParameters stream_params;
+    stream_params.adaptative_bitrate = this->get_parameter("streaming_adaptative_bitrate").as_bool();
+    stream_params.bitrate = this->get_parameter("streaming_bitrate").as_int();
+    stream_params.chunk_size = this->get_parameter("streaming_chunk_size").as_int();
+    stream_params.codec = streaming_codec_; // This must be validated
+    stream_params.gop_size = this->get_parameter("streaming_gop_size").as_int();
+    stream_params.port = this->get_parameter("streaming_sender_port").as_int();
+    stream_params.target_framerate = this->get_parameter("streaming_target_fps").as_int();
+
+    err = zed_.enableStreaming(stream_params);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "ZEDDriverNode::open_camera: Failed to enable streaming as sender (%d): %s",
+        static_cast<int>(err),
+        sl::toString(err).c_str());
+      zed_.close();
+      return false;
+    }
   }
 
   // Enable positional tracking
@@ -384,6 +422,37 @@ bool ZEDDriverNode::validate_resolution(const rclcpp::Parameter & p)
       resolution.c_str());
     return false;
   }
+  return true;
+}
+
+/**
+ * @brief Validates the streaming_codec parameter.
+ *
+ * @param p Parameter to validate.
+ * @return True if the parameter is valid, false otherwise.
+ */
+bool ZEDDriverNode::validate_streaming_codec(const rclcpp::Parameter & p)
+{
+  std::string codec = p.as_string();
+  if (codec.empty()) {
+    // This disables streaming
+    return true;
+  }
+
+  if (codec != "H264" && codec != "H265") {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "ZEDDriverNode::validate_streaming_codec: Invalid streaming_codec parameter: %s",
+      codec.c_str());
+    return false;
+  }
+
+  if (codec == "H264") {
+    streaming_codec_ = sl::STREAMING_CODEC::H264;
+  } else if (codec == "H265") {
+    streaming_codec_ = sl::STREAMING_CODEC::H265;
+  }
+
   return true;
 }
 

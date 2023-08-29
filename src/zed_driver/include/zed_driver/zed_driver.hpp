@@ -208,6 +208,7 @@ private:
   std::vector<double> roi_box_sizes_;
   std::vector<int64_t> sd_resolution_ = {0, 0};
   bool stream_hd_ = false;
+  sl::STREAMING_CODEC streaming_codec_ = sl::STREAMING_CODEC::H264;
   int64_t texture_confidence_ = 100;
   bool verbose_ = false;
   int64_t video_rate_ = 0;
@@ -217,6 +218,7 @@ private:
   bool validate_enable_tracking(const rclcpp::Parameter & p);
   bool validate_fps(const rclcpp::Parameter & p);
   bool validate_resolution(const rclcpp::Parameter & p);
+  bool validate_streaming_codec(const rclcpp::Parameter & p);
 
   /* Auxiliary routines. */
   bool open_camera();

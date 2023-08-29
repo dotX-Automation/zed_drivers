@@ -116,8 +116,7 @@ void ZEDDriverNode::rgb_routine()
 
     // Record frames, if requested
     if (!record_path_.empty()) {
-      std::string frame_name = std::to_string(
-        uint64_t(curr_rgb_ts_.seconds() * 1e9 + curr_rgb_ts_.nanoseconds())) + ".jpg";
+      std::string frame_name = std::to_string(uint64_t(curr_rgb_ts_.nanoseconds())) + ".jpg";
       std::string left_frame_name = record_path_ + "/left_" + frame_name;
       std::string right_frame_name = record_path_ + "/right_" + frame_name;
       cv::imwrite(left_frame_name, left_frame_cv_bgr);

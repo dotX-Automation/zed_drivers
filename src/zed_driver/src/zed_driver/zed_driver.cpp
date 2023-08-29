@@ -20,8 +20,6 @@ namespace ZEDDriver
 ZEDDriverNode::ZEDDriverNode(const rclcpp::NodeOptions & opts)
 : NodeBase("zed_driver", opts, true)
 {
-  init_atomics();
-  init_sync_primitives();
   init_parameters();
   init_publishers();
   init_services();
@@ -82,37 +80,6 @@ ZEDDriverNode::~ZEDDriverNode()
   tf_listener_.reset();
   tf_broadcaster_.reset();
   tf_buffer_.reset();
-
-  // Destroy semaphores
-  sem_destroy(&depth_sem_1_);
-  sem_destroy(&depth_sem_2_);
-}
-
-/**
- * @brief Initializes atomic variables.
- */
-void ZEDDriverNode::init_atomics()
-{
-  running_.store(false, std::memory_order_release);
-}
-
-/**
- * @brief Initializes synchronization primitives.
- *
- * @throws RuntimeError if something fails during initialization.
- */
-void ZEDDriverNode::init_sync_primitives()
-{
-  if ((sem_init(&depth_sem_1_, 0, 1) != 0) ||
-    (sem_init(&depth_sem_2_, 0, 0) != 0))
-  {
-    RCLCPP_FATAL(
-      this->get_logger(),
-      "ZEDDriverNode::init_sync_primitives: Failed to initialize semaphores");
-    perror("sem_init");
-    throw std::runtime_error(
-            "ZEDDriverNode::init_sync_primitives: Failed to initialize semaphores");
-  }
 }
 
 /**
@@ -195,30 +162,50 @@ void ZEDDriverNode::init_publishers()
     "~/rviz/roi",
     DUAQoS::Visualization::get_datum_qos(1));
 
+  // left/camera_info
+  left_info_pub_ = this->create_publisher<CameraInfo>(
+    "~/left/camera_info",
+    DUAQoS::get_datum_qos(1));
+
   // left/image_rect_color
-  left_rect_pub_ = std::make_shared<image_transport::CameraPublisher>(
-    image_transport::create_camera_publisher(
+  left_rect_pub_ = std::make_shared<image_transport::Publisher>(
+    image_transport::create_publisher(
       this,
       "~/left/image_rect_color",
       DUAQoS::get_image_qos().get_rmw_qos_profile()));
 
+  // left/sd/camera_info
+  left_sd_info_pub_ = this->create_publisher<CameraInfo>(
+    "~/left/sd/camera_info",
+    DUAQoS::Visualization::get_datum_qos(1));
+
   // left/sd/image_rect_color
-  left_rect_sd_pub_ = std::make_shared<image_transport::CameraPublisher>(
-    image_transport::create_camera_publisher(
+  left_rect_sd_pub_ = std::make_shared<image_transport::Publisher>(
+    image_transport::create_publisher(
       this,
       "~/left/sd/image_rect_color",
       DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
 
+  // right/camera_info
+  right_info_pub_ = this->create_publisher<CameraInfo>(
+    "~/right/camera_info",
+    DUAQoS::get_datum_qos(1));
+
   // right/image_rect_color
-  right_rect_pub_ = std::make_shared<image_transport::CameraPublisher>(
-    image_transport::create_camera_publisher(
+  right_rect_pub_ = std::make_shared<image_transport::Publisher>(
+    image_transport::create_publisher(
       this,
       "~/right/image_rect_color",
       DUAQoS::get_image_qos().get_rmw_qos_profile()));
 
+  // right/sd/camera_info
+  right_sd_info_pub_ = this->create_publisher<CameraInfo>(
+    "~/right/sd/camera_info",
+    DUAQoS::Visualization::get_datum_qos(1));
+
   // right/sd/image_rect_color
-  right_rect_sd_pub_ = std::make_shared<image_transport::CameraPublisher>(
-    image_transport::create_camera_publisher(
+  right_rect_sd_pub_ = std::make_shared<image_transport::Publisher>(
+    image_transport::create_publisher(
       this,
       "~/right/sd/image_rect_color",
       DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));

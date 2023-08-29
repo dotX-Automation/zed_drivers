@@ -13,6 +13,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <memory>
 #include <mutex>
@@ -21,6 +22,7 @@
 #include <thread>
 #include <vector>
 
+#include <errno.h>
 #include <semaphore.h>
 
 #include <Eigen/Core>
@@ -54,6 +56,8 @@
 
 #include <dynamic_systems_control/control_lib.hpp>
 #include <dynamic_systems_control/lti.hpp>
+
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 
 #include <dua_interfaces/msg/point_cloud2_with_roi.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -92,8 +96,6 @@ public:
 
 private:
   /* Node initialization routines. */
-  void init_atomics();
-  void init_sync_primitives();
   void init_parameters();
   void init_publishers();
   void init_services();
@@ -127,14 +129,18 @@ private:
   rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_roi_pub_;
   rclcpp::Publisher<MarkerArray>::SharedPtr rviz_roi_pub_;
 
-  /* image_transport publishers. */
-  std::shared_ptr<image_transport::CameraPublisher> left_rect_pub_;
-  std::shared_ptr<image_transport::CameraPublisher> right_rect_pub_;
-  std::shared_ptr<image_transport::CameraPublisher> left_rect_sd_pub_;
-  std::shared_ptr<image_transport::CameraPublisher> right_rect_sd_pub_;
+  /* image_transport, camera_info publishers. */
+  std::shared_ptr<image_transport::Publisher> left_rect_pub_;
+  std::shared_ptr<image_transport::Publisher> right_rect_pub_;
+  std::shared_ptr<image_transport::Publisher> left_rect_sd_pub_;
+  std::shared_ptr<image_transport::Publisher> right_rect_sd_pub_;
   std::shared_ptr<TheoraWrappers::Publisher> left_stream_pub_;
   std::shared_ptr<TheoraWrappers::Publisher> right_stream_pub_;
   std::shared_ptr<image_transport::Publisher> depth_pub_;
+  rclcpp::Publisher<CameraInfo>::SharedPtr left_info_pub_;
+  rclcpp::Publisher<CameraInfo>::SharedPtr right_info_pub_;
+  rclcpp::Publisher<CameraInfo>::SharedPtr left_sd_info_pub_;
+  rclcpp::Publisher<CameraInfo>::SharedPtr right_sd_info_pub_;
 
   /* Service servers. */
   rclcpp::Service<SetBool>::SharedPtr enable_srv_;
@@ -147,15 +153,12 @@ private:
   /* Internal state and data. */
   sl::Camera zed_;
   sl::MODEL camera_model_;
-  std::atomic<bool> running_;
+  std::atomic<bool> running_{false};
   camera_info_manager::CameraInfo left_info_{};
   camera_info_manager::CameraInfo left_sd_info_{};
   camera_info_manager::CameraInfo right_info_{};
   camera_info_manager::CameraInfo right_sd_info_{};
-
-  /* Undersampling stopwatches. */
-  rclcpp::Time last_video_ts_;
-  rclcpp::Time last_depth_ts_;
+  rclcpp::Clock system_clock_ = rclcpp::Clock(RCL_SYSTEM_TIME);
 
   /* Camera sampling thread and routine. */
   std::thread camera_thread_;
@@ -168,6 +171,16 @@ private:
   sem_t depth_sem_2_;
   sl::Mat depth_map_view_;
   sl::Mat depth_point_cloud_;
+  rclcpp::Time last_depth_ts_;
+
+  /* RGB processing thread, routine, and buffers. */
+  std::thread rgb_thread_;
+  void rgb_routine();
+  rclcpp::Time curr_rgb_ts_{};
+  sem_t rgb_sem_1_;
+  sem_t rgb_sem_2_;
+  cv::Mat left_frame_cv_, right_frame_cv_;
+  cv::Mat left_frame_sd_cv_, right_frame_sd_cv_;
 
   /* IMU filters and data. */
   std::array<DynamicSystems::Control::LTISystem, 3> gyro_filters_;

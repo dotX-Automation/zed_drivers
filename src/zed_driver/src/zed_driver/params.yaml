@@ -46,7 +46,7 @@ params:
     max_value: 1.0
     step: 0.0
     description: "Minimum depth distance [m]"
-    constraints: "Changes require camera restart, must be a valid minimum depth distance for the ZED camera"
+    constraints: "Changes require camera restart, must be a valid minimum depth distance for the ZED camera, may impact performance"
     read_only: false
 
   depth_mode:
@@ -64,7 +64,7 @@ params:
     max_value: 100
     step: 1
     description: "Depth stream publishing rate (for undersampling)"
-    constraints: "Changes require camera restart, 0 or >=fps mean no undersampling, -1 means no depth processing"
+    constraints: "Changes require camera restart, 0 or >=fps mean no undersampling, -1 means no depth data processing"
     read_only: false
     var_name: depth_rate_
 

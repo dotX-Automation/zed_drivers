@@ -168,7 +168,6 @@ private:
   sem_t depth_sem_2_;
   sl::Mat depth_map_view_;
   sl::Mat depth_point_cloud_;
-  PoseKit::Pose depth_curr_pose_;
 
   /* IMU filters and data. */
   std::array<DynamicSystems::Control::LTISystem, 3> gyro_filters_;
@@ -214,7 +213,7 @@ private:
     camera_info_manager::CameraInfo & info,
     const std::string & frame_id,
     double stereo_baseline = 0.0);
-  PoseKit::Pose positional_tracking(sl::Pose & camera_pose);
+  void positional_tracking(sl::Pose & camera_pose);
   void sensor_sampling(sl::SensorsData & sensors_data);
   cv::Mat sl_to_cv(sl::Mat & input);
   cv::Mat sl_to_cv_depth(sl::Mat & input);

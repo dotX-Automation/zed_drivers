@@ -92,30 +92,12 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   }
 
   // Get base_link pose
-  // For a moment, pretend that the frame_id denotes the child frame for this data,
-  // only to make track_parent work
   PoseKit::Pose base_link_pose = zed_pose;
-  base_link_pose.set_frame_id(camera_frame_);
-  try {
-    base_link_pose.track_parent(base_link_to_camera);
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "ZEDDriverNode::camera_routine: base_link_pose::track_parent: %s",
-      e.what());
-  }
-  base_link_pose.set_frame_id(odom_frame_);
+  base_link_pose.rigid_transform(base_link_to_camera, odom_frame_);
 
   // Get base_link twist
   PoseKit::KinematicPose base_link_twist = zed_twist;
-  try {
-    base_link_twist.track_parent(base_link_to_camera);
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "ZEDDriverNode::camera_routine: base_link_twist::track_parent: %s",
-      e.what());
-  }
+  base_link_twist.rigid_transform(base_link_to_camera);
 
   // Build odometry messages
   Odometry camera_odom_msg{}, base_link_odom_msg{};

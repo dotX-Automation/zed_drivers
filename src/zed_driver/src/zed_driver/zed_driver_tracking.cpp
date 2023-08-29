@@ -78,17 +78,24 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
 
   // Get latest base_link -> camera transform
   TransformStamped base_link_to_camera{};
-  try {
-    base_link_to_camera = tf_buffer_->lookupTransform(
-      link_namespace_ + "base_link",
-      camera_frame_,
-      zed_pose.get_header().stamp,
-      tf2::durationFromSec(0.1));
-  } catch (const tf2::TransformException & e) {
-    RCLCPP_ERROR(
-      this->get_logger(),
-      "ZEDDriverNode::positional_tracking: TF exception: %s",
-      e.what());
+  rclcpp::Time tf_time(zed_pose.get_header().stamp);
+  while (true) {
+    try {
+      base_link_to_camera = tf_buffer_->lookupTransform(
+        link_namespace_ + "base_link",
+        camera_frame_,
+        tf_time,
+        tf2::durationFromSec(0.1));
+      break;
+    } catch (const tf2::ExtrapolationException & e) {
+      // Just get the latest
+      tf_time = rclcpp::Time{};
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_ERROR(
+        this->get_logger(),
+        "ZEDDriverNode::positional_tracking: TF exception: %s",
+        e.what());
+    }
   }
 
   // Get base_link pose

@@ -40,19 +40,26 @@ void ZEDDriverNode::depth_routine()
       depth_pub_->publish(*depth_msg);
     }
 
-    // Get latest global_frame -> camera_frame transform
+    // Get current or latest global_frame -> camera_frame transform
     TransformStamped global_to_camera{};
-    try {
-      global_to_camera = tf_buffer_->lookupTransform(
-        global_frame_,
-        camera_frame_,
-        depth_msg->header.stamp,
-        tf2::durationFromSec(0.1));
-    } catch (const tf2::TransformException & e) {
-      RCLCPP_ERROR(
-        this->get_logger(),
-        "ZEDDriverNode::depth_routine: TF exception: %s",
-        e.what());
+    rclcpp::Time tf_time(depth_msg->header.stamp);
+    while (true) {
+      try {
+        global_to_camera = tf_buffer_->lookupTransform(
+          global_frame_,
+          camera_frame_,
+          tf_time,
+          tf2::durationFromSec(0.1));
+        break;
+      } catch (const tf2::ExtrapolationException & e) {
+        // Just get the latest
+        tf_time = rclcpp::Time{};
+      } catch (const tf2::TransformException & e) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "ZEDDriverNode::depth_routine: TF exception: %s",
+          e.what());
+      }
     }
     Eigen::Isometry3f global_to_camera_iso = tf2::transformToEigen(global_to_camera).cast<float>();
 

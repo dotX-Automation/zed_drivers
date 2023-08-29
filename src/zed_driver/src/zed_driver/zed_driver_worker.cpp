@@ -1,5 +1,5 @@
 /**
- * Worker threads of the ZED Driver node.
+ * Implementation of the main worker thread of the ZED Driver node.
  *
  * Roberto Masocco <robmasocco@gmail.com>
  * Intelligent Systems Lab <isl.torvergata@gmail.com>

@@ -13,7 +13,7 @@ params:
 
   base_link_name:
     type: string
-    default_value: map
+    default_value: base_link
     description: "Base link name"
     constraints: "Must be a valid frame"
     read_only: true

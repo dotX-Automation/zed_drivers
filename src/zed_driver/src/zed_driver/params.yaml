@@ -11,6 +11,15 @@ params:
     read_only: true
     var_name: autostart_
 
+  base_link_name:
+    type: string
+    default_value: map
+    description: "Base link name"
+    constraints: "Must be a valid frame"
+    read_only: true
+    var_name: base_link_name_
+
+
   camera_settings_path:
     type: string
     default_value: ""

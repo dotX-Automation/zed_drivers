@@ -188,6 +188,7 @@ private:
 
   /* Node parameters. */
   bool autostart_;
+  std::string base_link_name_ = "";
   int64_t confidence_ = 50;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;

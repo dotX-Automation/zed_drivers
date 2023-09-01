@@ -19,7 +19,8 @@ namespace ZEDDriver
  */
 void ZEDDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
 {
-  // Process IMU data
+  // Process IMU data, translating it from ZED to ROS format
+  // Refer to the ZED SDK documentation for more information on these operations
   sl::SensorsData::IMUData imu_data = sensors_data.imu;
   if (imu_data.is_available) {
     Imu imu_msg{}, imu_filtered_msg{};
@@ -27,9 +28,7 @@ void ZEDDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
     imu_msg.header.stamp.set__nanosec(
       static_cast<uint32_t>(imu_data.timestamp.getNanoseconds() % uint64_t(1e9)));
     imu_msg.header.set__frame_id(camera_imu_frame_);
-    imu_filtered_msg.header.stamp.set__sec(static_cast<int32_t>(imu_data.timestamp.getSeconds()));
-    imu_filtered_msg.header.stamp.set__nanosec(
-      static_cast<uint32_t>(imu_data.timestamp.getNanoseconds() % uint64_t(1e9)));
+    imu_filtered_msg.header.set__stamp(imu_msg.header.stamp);
     imu_filtered_msg.header.set__frame_id(camera_imu_frame_);
 
     imu_msg.orientation.set__w(static_cast<double>(imu_data.pose.getOrientation().ow));

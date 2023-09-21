@@ -59,6 +59,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
         this->get_logger(),
         "ZEDDriverNode::positional_tracking: TF exception: %s",
         e.what());
+      return;
     }
   }
   Eigen::Vector3d odom_to_camera_odom_rpy =
@@ -129,6 +130,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
         this->get_logger(),
         "ZEDDriverNode::positional_tracking: TF exception: %s",
         e.what());
+      return;
     }
   }
 

@@ -20,6 +20,7 @@ void ZEDDriverNode::depth_routine()
   RCLCPP_INFO(this->get_logger(), "Depth processing thread started");
 
   while (true) {
+next:
     // Wait for depth data
     sem_wait(&depth_sem_2_);
 
@@ -59,6 +60,8 @@ void ZEDDriverNode::depth_routine()
           this->get_logger(),
           "ZEDDriverNode::depth_routine: TF exception: %s",
           e.what());
+        sem_post(&depth_sem_1_);
+        goto next;
       }
     }
     Eigen::Isometry3f global_to_camera_iso = tf2::transformToEigen(global_to_camera).cast<float>();

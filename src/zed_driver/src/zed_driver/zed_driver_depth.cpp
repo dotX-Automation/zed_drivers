@@ -20,7 +20,6 @@ void ZEDDriverNode::depth_routine()
   RCLCPP_INFO(this->get_logger(), "Depth processing thread started");
 
   while (true) {
-next:
     // Wait for depth data
     sem_wait(&depth_sem_2_);
 
@@ -37,63 +36,27 @@ next:
     depth_msg->header.stamp.set__nanosec(
       static_cast<uint32_t>(depth_map_view_.timestamp.getNanoseconds() % uint64_t(1e9)));
     depth_msg->set__encoding(sensor_msgs::image_encodings::BGRA8);
-    if (depth_pub_->getNumSubscribers()) {
-      depth_pub_->publish(*depth_msg);
-    }
+    depth_pub_->publish(*depth_msg);
 
-    // Get current or latest global_frame -> camera_frame transform
-    TransformStamped global_to_camera{};
-    rclcpp::Time tf_time(depth_msg->header.stamp);
-    while (true) {
-      try {
-        global_to_camera = tf_buffer_->lookupTransform(
-          global_frame_,
-          camera_frame_,
-          tf_time,
-          tf2::durationFromSec(0.1));
-        break;
-      } catch (const tf2::ExtrapolationException & e) {
-        // Just get the latest
-        tf_time = rclcpp::Time{};
-      } catch (const tf2::TransformException & e) {
-        RCLCPP_ERROR(
-          this->get_logger(),
-          "ZEDDriverNode::depth_routine: TF exception: %s",
-          e.what());
-        sem_post(&depth_sem_1_);
-        goto next;
-      }
-    }
-    Eigen::Isometry3f global_to_camera_iso = tf2::transformToEigen(global_to_camera).cast<float>();
-
-    // Get ROI box sizes and corner points (in camera_frame)
-    Eigen::Vector4f p0_om(
+    // Get ROI box sizes and corner points (in camera frame)
+    Eigen::Vector3f p0(
       0.0f,
       static_cast<float>(-roi_box_sizes_[1] / 2.0),
-      static_cast<float>(-roi_box_sizes_[2] / 2.0),
-      1.0f);
-    Eigen::Vector4f p1_om(
+      static_cast<float>(-roi_box_sizes_[2] / 2.0));
+    Eigen::Vector3f p1(
       static_cast<float>(roi_box_sizes_[0]),
       static_cast<float>(-roi_box_sizes_[1] / 2.0),
-      static_cast<float>(-roi_box_sizes_[2] / 2.0),
-      1.0f);
-    Eigen::Vector4f p2_om(
+      static_cast<float>(-roi_box_sizes_[2] / 2.0));
+    Eigen::Vector3f p2(
       0.0f,
       static_cast<float>(roi_box_sizes_[1] / 2.0),
-      static_cast<float>(-roi_box_sizes_[2] / 2.0),
-      1.0f);
-    Eigen::Vector4f p3_om(
+      static_cast<float>(-roi_box_sizes_[2] / 2.0));
+    Eigen::Vector3f p3(
       0.0f,
       static_cast<float>(-roi_box_sizes_[1] / 2.0),
-      static_cast<float>(roi_box_sizes_[2] / 2.0),
-      1.0f);
-    // Extract 3D vectors
-    Eigen::Vector3f p0 = p0_om.head<3>();
-    Eigen::Vector3f p1 = p1_om.head<3>();
-    Eigen::Vector3f p2 = p2_om.head<3>();
-    Eigen::Vector3f p3 = p3_om.head<3>();
+      static_cast<float>(roi_box_sizes_[2] / 2.0));
 
-    // Compute ROI evaluation vectors
+    // Compute ROI evaluation vectors (in camera frame)
     Eigen::Vector3f ic = p1 - p0;
     Eigen::Vector3f jc = p2 - p0;
     Eigen::Vector3f kc = p3 - p0;
@@ -101,40 +64,36 @@ next:
     float jtj = jc.transpose() * jc;
     float ktk = kc.transpose() * kc;
 
-    // Compute PC+ROI transformation matrix
+    // Compute ROI transformation matrix
     uint32_t pc_length =
       static_cast<uint32_t>(depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight());
-    Eigen::MatrixXf pc_transform = Eigen::MatrixXf::Zero(7, 7);
-    pc_transform.block<4, 4>(0, 0) = global_to_camera_iso.matrix();
-    pc_transform.block<1, 3>(4, 4) = ic.transpose();
-    pc_transform.block<1, 3>(5, 4) = jc.transpose();
-    pc_transform.block<1, 3>(6, 4) = kc.transpose();
+    Eigen::MatrixXf roi_transform = Eigen::MatrixXf::Zero(6, 6);
+    roi_transform.block<3, 3>(0, 0) = Eigen::Matrix3f::Identity();
+    roi_transform.block<1, 3>(3, 3) = ic.transpose();
+    roi_transform.block<1, 3>(4, 3) = jc.transpose();
+    roi_transform.block<1, 3>(5, 3) = kc.transpose();
 
     // Fill and publish point cloud messages
     PointCloud2 pc_msg{}, pc_roi_msg{};
     PointCloud2WithROI pc_with_roi_msg{};
-    std::array<Eigen::Vector4f, 4> roi_corners_map = {
-      global_to_camera_iso * p0_om,
-      global_to_camera_iso * p1_om,
-      global_to_camera_iso * p2_om,
-      global_to_camera_iso * p3_om};
+    std::array<Eigen::Vector3f, 4> roi_corners = {p0, p1, p2, p3};
     pc_with_roi_msg.set__culled(true);
     pc_with_roi_msg.roi.set__type(dua_interfaces::msg::RegionOfInterest::BOX);
     for (int i = 0; i < 4; ++i) {
-      pc_with_roi_msg.roi.box_corners[i].header.set__frame_id(global_frame_);
+      pc_with_roi_msg.roi.box_corners[i].header.set__frame_id(camera_left_frame_);
       pc_with_roi_msg.roi.box_corners[i].header.stamp.set__sec(
         static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
       pc_with_roi_msg.roi.box_corners[i].header.stamp.set__nanosec(
         static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
 
-      pc_with_roi_msg.roi.box_corners[i].point.set__x(roi_corners_map[i].x());
-      pc_with_roi_msg.roi.box_corners[i].point.set__y(roi_corners_map[i].y());
-      pc_with_roi_msg.roi.box_corners[i].point.set__z(roi_corners_map[i].z());
+      pc_with_roi_msg.roi.box_corners[i].point.set__x(roi_corners[i].x());
+      pc_with_roi_msg.roi.box_corners[i].point.set__y(roi_corners[i].y());
+      pc_with_roi_msg.roi.box_corners[i].point.set__z(roi_corners[i].z());
     }
     sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
     sensor_msgs::PointCloud2Modifier pc_roi_modifier(pc_roi_msg);
-    pc_msg.header.set__frame_id(global_frame_);
-    pc_roi_msg.header.set__frame_id(global_frame_);
+    pc_msg.header.set__frame_id(camera_left_frame_);
+    pc_roi_msg.header.set__frame_id(camera_left_frame_);
     pc_msg.header.stamp.set__sec(static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
     pc_msg.header.stamp.set__nanosec(
       static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
@@ -172,7 +131,7 @@ next:
     sensor_msgs::PointCloud2Iterator<float> iter_pc_roi_rgba(pc_roi_msg, "rgba");
 
     // Fill point cloud matrix and color vector
-    Eigen::MatrixXf pc_mat = Eigen::MatrixXf::Zero(7, pc_length);
+    Eigen::MatrixXf pc_mat = Eigen::MatrixXf::Zero(6, pc_length);
     std::vector<float> pc_colors(pc_length);
     uint32_t mat_col_idx = 0;
     for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
@@ -190,8 +149,8 @@ next:
           point3D.y,
           point3D.z);
         Eigen::Vector3f qc = Qc - p0;
-        pc_mat.block<4, 1>(0, mat_col_idx) = Eigen::Vector4f(Qc.x(), Qc.y(), Qc.z(), 1.0f);
-        pc_mat.block<3, 1>(4, mat_col_idx) = qc;
+        pc_mat.block<3, 1>(0, mat_col_idx) = Qc;
+        pc_mat.block<3, 1>(3, mat_col_idx) = qc;
         pc_colors[mat_col_idx] = point3D.w;
 
         mat_col_idx++;
@@ -199,12 +158,12 @@ next:
     }
     uint32_t valid_points = mat_col_idx;
     pc_colors.resize(valid_points);
-    pc_mat.resize(7, valid_points);
+    pc_mat.resize(6, valid_points);
 
-    // Express point cloud in global frame
+    // Compute ROI from whole point cloud
     // This instruction makes use of all the Eigen magic, and its performance impact depends
     // on the entity of the point cloud.
-    pc_mat = pc_transform * pc_mat;
+    pc_mat = roi_transform * pc_mat;
 
     // Fill point cloud messages
     uint32_t pc_roi_length = 0;
@@ -252,19 +211,18 @@ next:
     rviz_point_cloud_pub_->publish(pc_msg);
     rviz_point_cloud_roi_pub_->publish(pc_roi_msg);
 
-    // Compute ROI box center in global frame
+    // Compute ROI box center (in camera frame)
     Eigen::Isometry3f roi_center_iso = Eigen::Isometry3f::Identity();
     roi_center_iso.pretranslate(Eigen::Vector3f(roi_box_sizes_[0] / 2.0f, 0.0f, 0.0f));
-    roi_center_iso = global_to_camera_iso * roi_center_iso;
     Eigen::Quaternionf roi_center_orientation(roi_center_iso.rotation());
 
     // Publish the current ROI for visualization
     Marker cleanup_marker{}, roi_marker{};
     MarkerArray roi_markers{};
-    cleanup_marker.header.set__frame_id(global_frame_);
+    cleanup_marker.header.set__frame_id(camera_left_frame_);
     cleanup_marker.header.stamp = pc_msg.header.stamp;
     cleanup_marker.set__action(Marker::DELETEALL);
-    roi_marker.header.set__frame_id(global_frame_);
+    roi_marker.header.set__frame_id(camera_left_frame_);
     roi_marker.header.stamp = pc_msg.header.stamp;
     roi_marker.set__ns(this->get_fully_qualified_name());
     roi_marker.set__id(0);

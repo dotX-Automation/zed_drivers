@@ -36,6 +36,10 @@
     streaming_sender_ip: ""
     streaming_sender_port: 30000
     streaming_target_fps: 30
+    svo_compression: H264
+    svo_file: ''
+    svo_record: false
+    svo_transcode_stream: false
     texture_confidence: 100
     use_sim_time: false
     verbose: true

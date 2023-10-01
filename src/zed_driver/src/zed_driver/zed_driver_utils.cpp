@@ -28,6 +28,9 @@ bool ZEDDriverNode::open_camera()
   std::string streaming_codec = this->get_parameter("streaming_codec").as_string();
   std::string streaming_sender_ip = this->get_parameter("streaming_sender_ip").as_string();
   unsigned short streaming_sender_port = this->get_parameter("streaming_sender_port").as_int();
+  std::string svo_file = this->get_parameter("svo_file").as_string();
+  bool svo_record = this->get_parameter("svo_record").as_bool();
+  bool svo_transcode_stream = this->get_parameter("svo_transcode_stream").as_bool();
 
   // Detect invalid parameter configurations
   if (!streaming_codec.empty() && !streaming_sender_ip.empty()) {
@@ -74,7 +77,12 @@ bool ZEDDriverNode::open_camera()
     sl::InputType input_type;
     input_type.setFromStream(sl::String(streaming_sender_ip.c_str()), streaming_sender_port);
     init_params.input = input_type;
+  } else if (!svo_record && !svo_file.empty()) {
+    sl::InputType input_type;
+    input_type.setFromSVOFile(sl::String(svo_file.c_str()));
+    init_params.input = input_type;
   }
+  // If all the above fail, the first compatible ZED device found will be opened
 
   sl::ERROR_CODE err;
 
@@ -105,6 +113,25 @@ bool ZEDDriverNode::open_camera()
       RCLCPP_FATAL(
         this->get_logger(),
         "ZEDDriverNode::open_camera: Failed to enable streaming as sender (%d): %s",
+        static_cast<int>(err),
+        sl::toString(err).c_str());
+      zed_.close();
+      return false;
+    }
+  }
+
+  // Enable SVO file recording
+  if (svo_record && !svo_file.empty()) {
+    sl::RecordingParameters recording_params;
+    recording_params.compression_mode = svo_compression;
+    recording_params.video_filename = sl::String(svo_file.c_str());
+    recording_params.transcode_streaming_input = svo_transcode_stream;
+
+    err = zed_.enableRecording(recording_params);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "ZEDDriverNode::open_camera: Failed to enable SVO recording (%d): %s",
         static_cast<int>(err),
         sl::toString(err).c_str());
       zed_.close();
@@ -451,6 +478,41 @@ bool ZEDDriverNode::validate_streaming_codec(const rclcpp::Parameter & p)
     streaming_codec_ = sl::STREAMING_CODEC::H264;
   } else if (codec == "H265") {
     streaming_codec_ = sl::STREAMING_CODEC::H265;
+  }
+
+  return true;
+}
+
+/**
+ * @brief Validates the svo_compression parameter.
+ *
+ * @param p Parameter to validate.
+ * @return True if the parameter is valid, false otherwise.
+ */
+bool ZEDDriverNode::validate_svo_compression(const rclcpp::Parameter & p)
+{
+  std::string compression = p.as_string();
+  if (compression.empty()) {
+    // The default might be ok, or SVO module might be disabled
+    return true;
+  }
+
+  if (compression == "LOSSLESS") {
+    svo_compression = sl::SVO_COMPRESSION_MODE::LOSSLESS;
+  } else if (compression == "H264") {
+    svo_compression = sl::SVO_COMPRESSION_MODE::H264;
+  } else if (compression == "H264_LOSSLESS") {
+    svo_compression = sl::SVO_COMPRESSION_MODE::H264_LOSSLESS;
+  } else if (compression == "H265") {
+    svo_compression = sl::SVO_COMPRESSION_MODE::H265;
+  } else if (compression == "H265_LOSSLESS") {
+    svo_compression = sl::SVO_COMPRESSION_MODE::H265_LOSSLESS;
+  } else {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "ZEDDriverNode::validate_svo_compression: Invalid svo_compression parameter: %s",
+      compression.c_str());
+    return false;
   }
 
   return true;

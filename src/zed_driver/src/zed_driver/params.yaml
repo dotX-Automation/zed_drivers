@@ -353,6 +353,35 @@ params:
     constraints: "Changes require camera restart, must be >= fps, otherwise will be set at fps"
     read_only: false
 
+  svo_compression:
+    type: string
+    default_value: "H264"
+    description: "Compression mode for SVO file recording"
+    constraints: "Changes require camera restart, can either be 'LOSSLESS', 'H264', 'H264_LOSSLESS', 'H265', or 'H265_LOSSLESS'"
+    read_only: false
+    validator: validate_svo_compression
+
+  svo_file:
+    type: string
+    default_value: ""
+    description: "SVO file to use"
+    constraints: "Changes require camera restart, leave empty to disable SVO module"
+    read_only: false
+
+  svo_record:
+    type: bool
+    default_value: false
+    description: "Enables recording to or reading from an SVO file"
+    constraints: "Changes require camera restart"
+    read_only: false
+
+  svo_transcode_stream:
+    type: bool
+    default_value: false
+    description: "Enables NVENC transcoding of an RTP remote camera stream to an SVO file for recording"
+    constraints: "Changes require camera restart"
+    read_only: false
+
   texture_confidence:
     type: integer
     default_value: 100

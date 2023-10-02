@@ -73,14 +73,21 @@ bool ZEDDriverNode::open_camera()
     sl::InputType input_type;
     input_type.setFromSerialNumber(static_cast<unsigned int>(serial_number));
     init_params.input = input_type;
+    RCLCPP_INFO(this->get_logger(), "Opening camera with serial number %ld", serial_number);
   } else if (!streaming_sender_ip.empty()) {
     sl::InputType input_type;
     input_type.setFromStream(sl::String(streaming_sender_ip.c_str()), streaming_sender_port);
     init_params.input = input_type;
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Opening remote camera at %s:%d",
+      streaming_sender_ip.c_str(),
+      streaming_sender_port);
   } else if (!svo_record && !svo_file.empty()) {
     sl::InputType input_type;
     input_type.setFromSVOFile(sl::String(svo_file.c_str()));
     init_params.input = input_type;
+    RCLCPP_INFO(this->get_logger(), "Opening SVO file %s", svo_file.c_str());
   }
   // If all the above fail, the first compatible ZED device found will be opened
 
@@ -118,6 +125,8 @@ bool ZEDDriverNode::open_camera()
       zed_.close();
       return false;
     }
+
+    RCLCPP_INFO(this->get_logger(), "Streaming enabled");
   }
 
   // Enable SVO file recording
@@ -137,6 +146,8 @@ bool ZEDDriverNode::open_camera()
       zed_.close();
       return false;
     }
+
+    RCLCPP_INFO(this->get_logger(), "SVO recording enabled");
   }
 
   // Enable positional tracking
@@ -160,6 +171,8 @@ bool ZEDDriverNode::open_camera()
       zed_.close();
       return false;
     }
+
+    RCLCPP_INFO(this->get_logger(), "Positional tracking enabled");
   }
 
   sl::CameraInformation zed_info = zed_.getCameraInformation();

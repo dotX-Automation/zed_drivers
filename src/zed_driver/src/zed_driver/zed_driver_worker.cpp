@@ -111,12 +111,18 @@ void ZEDDriverNode::camera_routine()
     runtime_params.texture_confidence_threshold = static_cast<int>(texture_confidence_);
     err = zed_.grab(runtime_params);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_ERROR(
-        this->get_logger(),
-        "ZEDDriverNode::camera_routine: Failed to grab data (%d): %s",
-        static_cast<int>(err),
-        sl::toString(err).c_str());
-      continue;
+      if (err == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+        // We reached the end of the recording, so just close the camera instance
+        RCLCPP_WARN(this->get_logger(), "End of SVO file reached, closing camera instance");
+        break;
+      } else {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "ZEDDriverNode::camera_routine: Failed to grab data (%d): %s",
+          static_cast<int>(err),
+          sl::toString(err).c_str());
+        continue;
+      }
     }
 
     curr_ts = this->get_clock()->now();

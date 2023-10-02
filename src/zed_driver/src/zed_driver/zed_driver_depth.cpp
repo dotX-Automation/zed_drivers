@@ -80,7 +80,7 @@ void ZEDDriverNode::depth_routine()
     pc_with_roi_msg.set__culled(true);
     pc_with_roi_msg.roi.set__type(dua_interfaces::msg::RegionOfInterest::BOX);
     for (int i = 0; i < 4; ++i) {
-      pc_with_roi_msg.roi.box_corners[i].header.set__frame_id(camera_left_frame_);
+      pc_with_roi_msg.roi.box_corners[i].header.set__frame_id(camera_frame_);
       pc_with_roi_msg.roi.box_corners[i].header.stamp.set__sec(
         static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
       pc_with_roi_msg.roi.box_corners[i].header.stamp.set__nanosec(
@@ -92,8 +92,8 @@ void ZEDDriverNode::depth_routine()
     }
     sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
     sensor_msgs::PointCloud2Modifier pc_roi_modifier(pc_roi_msg);
-    pc_msg.header.set__frame_id(camera_left_frame_);
-    pc_roi_msg.header.set__frame_id(camera_left_frame_);
+    pc_msg.header.set__frame_id(camera_frame_);
+    pc_roi_msg.header.set__frame_id(camera_frame_);
     pc_msg.header.stamp.set__sec(static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
     pc_msg.header.stamp.set__nanosec(
       static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
@@ -219,10 +219,10 @@ void ZEDDriverNode::depth_routine()
     // Publish the current ROI for visualization
     Marker cleanup_marker{}, roi_marker{};
     MarkerArray roi_markers{};
-    cleanup_marker.header.set__frame_id(camera_left_frame_);
+    cleanup_marker.header.set__frame_id(camera_frame_);
     cleanup_marker.header.stamp = pc_msg.header.stamp;
     cleanup_marker.set__action(Marker::DELETEALL);
-    roi_marker.header.set__frame_id(camera_left_frame_);
+    roi_marker.header.set__frame_id(camera_frame_);
     roi_marker.header.stamp = pc_msg.header.stamp;
     roi_marker.set__ns(this->get_fully_qualified_name());
     roi_marker.set__id(0);

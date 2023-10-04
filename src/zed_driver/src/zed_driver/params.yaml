@@ -19,7 +19,6 @@ params:
     read_only: true
     var_name: base_link_name_
 
-
   camera_settings_path:
     type: string
     default_value: ""
@@ -128,14 +127,6 @@ params:
     constraints: "Changes require camera restart, must be a valid frame rate for the ZED camera"
     read_only: false
     validator: validate_fps
-
-  global_frame:
-    type: string
-    default_value: map
-    description: "Global frame id"
-    constraints: "Must be a valid global frame"
-    read_only: true
-    var_name: global_frame_
 
   imu_filters_sampling_time:
     type: double

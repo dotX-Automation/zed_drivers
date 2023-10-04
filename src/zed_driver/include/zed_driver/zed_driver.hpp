@@ -195,7 +195,6 @@ private:
   std::vector<int64_t> depth_resolution_ = {0, 0};
   bool enable_tracking_ = false;
   int fps_ = 15;
-  std::string global_frame_ = "";
   double imu_filters_sampling_time_ = 0.0;
   int64_t imu_filters_zoh_steps_ = 0;
   int64_t imu_filters_order_ = 0;

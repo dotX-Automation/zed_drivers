@@ -175,9 +175,9 @@ void ZEDDriverNode::depth_routine()
       *iter_pc_rgba = pc_colors[i];
 
       // Check if point is in ROI, and add it in case
-      float itq = pc_mat(4, i);
-      float jtq = pc_mat(5, i);
-      float ktq = pc_mat(6, i);
+      float itq = pc_mat(3, i);
+      float jtq = pc_mat(4, i);
+      float ktq = pc_mat(5, i);
       if ((0 < itq) && (itq < iti) &&
         (0 < jtq) && (jtq < jtj) &&
         (0 < ktq) && (ktq < ktk))

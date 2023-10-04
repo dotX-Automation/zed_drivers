@@ -153,13 +153,18 @@ bool ZEDDriverNode::open_camera()
   // Enable positional tracking
   if (enable_tracking_) {
     sl::PositionalTrackingParameters tracking_params;
-    tracking_params.enable_area_memory = true;
-    tracking_params.enable_pose_smoothing = true;
+    tracking_params.enable_area_memory =
+      this->get_parameter("tracking_enable_area_memory").as_bool();
+    tracking_params.enable_pose_smoothing =
+      this->get_parameter("tracking_enable_pose_smoothing").as_bool();
     tracking_params.set_floor_as_origin = false;
-    tracking_params.enable_imu_fusion = true;
+    tracking_params.enable_imu_fusion =
+      this->get_parameter("tracking_enable_imu_fusion").as_bool();
     tracking_params.set_as_static = false;
-    tracking_params.depth_min_range = -1.0f;
-    tracking_params.set_gravity_as_origin = true;
+    tracking_params.depth_min_range =
+      this->get_parameter("tracking_depth_min_range").as_double();
+    tracking_params.set_gravity_as_origin =
+      this->get_parameter("tracking_set_gravity_as_origin").as_bool();
 
     err = zed_.enablePositionalTracking(tracking_params);
     if (err != sl::ERROR_CODE::SUCCESS) {

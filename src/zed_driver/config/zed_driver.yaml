@@ -14,7 +14,6 @@
     eigen_max_cores: 4
     enable_tracking: true
     fps: 30
-    global_frame: map
     link_namespace: ""
     odometry_frame: odom
     publish_tf: true
@@ -41,6 +40,11 @@
     svo_record: false
     svo_transcode_stream: false
     texture_confidence: 100
+    tracking_depth_min_range: -1.0
+    tracking_enable_area_memory: true
+    tracking_enable_imu_fusion: true
+    tracking_enable_pose_smoothing: true
+    tracking_set_gravity_as_origin: true
     use_sim_time: false
     verbose: true
     video_rate: 10

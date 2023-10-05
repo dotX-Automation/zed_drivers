@@ -421,6 +421,7 @@ params:
     description: "Whether to override 2 of the 3 rotations from initial world transform using IMU gravity"
     constraints: "Changes require camera restart"
     read_only: false
+    var_name: tracking_set_gravity_as_origin_
 
   verbose:
     type: bool

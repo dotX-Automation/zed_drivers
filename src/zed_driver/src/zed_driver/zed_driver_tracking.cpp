@@ -40,47 +40,61 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
     pose_covariance[i] = static_cast<double>(camera_pose.pose_covariance[i]);
   }
 
-  // Get (roll, pitch) rotation matrix of odom -> camera_odom transform
-  TransformStamped odom_to_camera_odom{};
-  rclcpp::Time tf_time(pose_header.stamp);
-  while (true) {
-    try {
-      odom_to_camera_odom = tf_buffer_->lookupTransform(
-        odom_frame_,
-        camera_odom_frame_,
-        tf_time,
-        tf2::durationFromSec(0.1));
-      break;
-    } catch (const tf2::ExtrapolationException & e) {
-      // Just get the latest
-      tf_time = rclcpp::Time{};
-    } catch (const tf2::TransformException & e) {
-      RCLCPP_ERROR(
-        this->get_logger(),
-        "ZEDDriverNode::positional_tracking: TF exception: %s",
-        e.what());
-      return;
+  // Here we must differentiate computations based on possible tracking settings.
+  // Note that we have a different frame for the camera in the TF tree, and that frame might be
+  // rotated with respect to the base frame, as per the static TF that describes this part of the robot.
+  // The tracking_set_gravity_as_origin parameter enables the camera to estimate its orientation
+  // with respect to the world, or with respect to its initial orientation.
+  // To be coherent with the static TF, depending on the value of the parameter, we must either:
+  // - leave the camera pose as it is (if tracking_set_gravity_as_origin is false);
+  // - rotate the camera pose by the inverse of the (roll, pitch) rotation given by the static TF.
+  // In the latter case, if there's a non-zero orientation left, it will be given by a real mounting
+  // or positioning error.
+  // As for the sensor data, the IMU orientation will still be expressed with respect to the world.
+  if (tracking_set_gravity_as_origin_) {
+    // Get (roll, pitch) rotation matrix of odom -> camera_odom transform
+    TransformStamped odom_to_camera_odom{};
+    rclcpp::Time tf_time(pose_header.stamp);
+    while (true) {
+      try {
+        odom_to_camera_odom = tf_buffer_->lookupTransform(
+          odom_frame_,
+          camera_odom_frame_,
+          tf_time,
+          tf2::durationFromSec(0.1));
+        break;
+      } catch (const tf2::ExtrapolationException & e) {
+        // Just get the latest
+        tf_time = rclcpp::Time{};
+      } catch (const tf2::TransformException & e) {
+        RCLCPP_ERROR(
+          this->get_logger(),
+          "ZEDDriverNode::positional_tracking: TF exception: %s",
+          e.what());
+        return;
+      }
     }
-  }
-  Eigen::Vector3d odom_to_camera_odom_rpy =
-    tf2::transformToEigen(odom_to_camera_odom).rotation().eulerAngles(0, 1, 2);
-  Eigen::Matrix3d camera_odom_rp(
-    Eigen::AngleAxisd(odom_to_camera_odom_rpy[0], Eigen::Vector3d::UnitX()) *
-    Eigen::AngleAxisd(odom_to_camera_odom_rpy[1], Eigen::Vector3d::UnitY()));
-  Eigen::Matrix<double, 6, 6> camera_odom_rp_covariance = Eigen::Matrix<double, 6, 6>::Zero();
-  camera_odom_rp_covariance.block<3, 3>(0, 0) = camera_odom_rp;
-  camera_odom_rp_covariance.block<3, 3>(3, 3) = camera_odom_rp;
-  std::array<double, 36> pose_covariance_in = pose_covariance;
-  Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>> pose_covariance_map(
-    pose_covariance.data());
-  Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>> pose_covariance_in_map(
-    pose_covariance_in.data());
+    Eigen::Vector3d odom_to_camera_odom_rpy =
+      tf2::transformToEigen(odom_to_camera_odom).rotation().eulerAngles(0, 1, 2);
+    Eigen::Matrix3d camera_odom_rp(
+      Eigen::AngleAxisd(odom_to_camera_odom_rpy[0], Eigen::Vector3d::UnitX()) *
+      Eigen::AngleAxisd(odom_to_camera_odom_rpy[1], Eigen::Vector3d::UnitY()));
+    Eigen::Matrix<double, 6, 6> camera_odom_rp_covariance = Eigen::Matrix<double, 6, 6>::Zero();
+    camera_odom_rp_covariance.block<3, 3>(0, 0) = camera_odom_rp;
+    camera_odom_rp_covariance.block<3, 3>(3, 3) = camera_odom_rp;
+    std::array<double, 36> pose_covariance_in = pose_covariance;
+    Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>> pose_covariance_map(
+      pose_covariance.data());
+    Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>> pose_covariance_in_map(
+      pose_covariance_in.data());
 
-  // Build corrected camera pose
-  position = camera_odom_rp.inverse() * position;
-  orientation = camera_odom_rp.inverse() * orientation;
-  pose_covariance_map =
-    camera_odom_rp_covariance.transpose() * pose_covariance_in_map * camera_odom_rp_covariance;
+    // Build corrected camera pose
+    position = camera_odom_rp.inverse() * position;
+    orientation = camera_odom_rp.inverse() * orientation;
+    pose_covariance_map =
+      camera_odom_rp_covariance.transpose() * pose_covariance_in_map * camera_odom_rp_covariance;
+  }
+
   PoseKit::Pose zed_pose(
     position,
     orientation,
@@ -114,6 +128,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
 
   // Get latest base_link -> camera transform
   TransformStamped base_link_to_camera{};
+  rclcpp::Time tf_time(pose_header.stamp);
   while (true) {
     try {
       base_link_to_camera = tf_buffer_->lookupTransform(

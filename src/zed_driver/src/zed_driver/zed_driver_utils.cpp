@@ -163,8 +163,7 @@ bool ZEDDriverNode::open_camera()
     tracking_params.set_as_static = false;
     tracking_params.depth_min_range =
       this->get_parameter("tracking_depth_min_range").as_double();
-    tracking_params.set_gravity_as_origin =
-      this->get_parameter("tracking_set_gravity_as_origin").as_bool();
+    tracking_params.set_gravity_as_origin = tracking_set_gravity_as_origin_;
 
     err = zed_.enablePositionalTracking(tracking_params);
     if (err != sl::ERROR_CODE::SUCCESS) {

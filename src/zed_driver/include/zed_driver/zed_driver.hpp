@@ -211,6 +211,7 @@ private:
   sl::STREAMING_CODEC streaming_codec_ = sl::STREAMING_CODEC::H264;
   sl::SVO_COMPRESSION_MODE svo_compression = sl::SVO_COMPRESSION_MODE::H264;
   int64_t texture_confidence_ = 100;
+  bool tracking_set_gravity_as_origin_ = false;
   bool verbose_ = false;
   int64_t video_rate_ = 0;
 

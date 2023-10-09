@@ -12,12 +12,62 @@
 namespace ZEDDriver
 {
 
+
 /**
- * @brief Publishes onboard sensors data.
+ * @brief Thread to sample high-rate onboard sensors.
+ */
+void ZEDDriverNode::sensors_routine()
+{
+  // Prepare sensors data
+  sl::SensorsData sensor_data;
+
+  RCLCPP_INFO(this->get_logger(), "Sensors processing thread started");
+
+  // Run until stopped
+  sl::ERROR_CODE err;
+  sl::Timestamp last_imu_ts_{};
+  while (true) {
+    // Check if thread should stop
+    if (!running_.load(std::memory_order_acquire)) {
+      break;
+    }
+
+    // The rationale for this is that we want to sample sensors data at the highest possible rate, but:
+    // - we must check that the data we get from the camera is not stale, i.e., the timestamp is different;
+    // - we can do this only if a physical camera is connected, i.e., this is not a stream or an SVO file.
+    // In the latter case, this thread won't be activated: only a small subset of the data will be
+    // available at TIME_REFERENCE::IMAGE, so it's useless to sample it.
+    err = zed_.getSensorsData(sensor_data, sl::TIME_REFERENCE::CURRENT);
+
+    if (err == sl::ERROR_CODE::SUCCESS) {
+      // Check that the data is not stale
+      if (sensor_data.imu.timestamp == last_imu_ts_) {
+        continue;
+      }
+      last_imu_ts_ = sensor_data.imu.timestamp;
+      sensors_processing(sensor_data);
+    } else {
+      RCLCPP_ERROR(
+          this->get_logger(),
+          "ZEDDriverNode::sensors_routine: Failed to get sensors data (%d): %s",
+          static_cast<int>(err),
+          sl::toString(err).c_str());
+        continue;
+    }
+
+    // Enforce a specific sampling rate
+    if (imu_sampling_time_ > 0) {
+      std::this_thread::sleep_for(std::chrono::microseconds(imu_sampling_time_));
+    }
+  }
+}
+
+/**
+ * @brief Post-processes and publishes onboard sensors data.
  *
  * @param sensors_data Sensors data.
  */
-void ZEDDriverNode::sensor_sampling(sl::SensorsData & sensors_data)
+void ZEDDriverNode::sensors_processing(sl::SensorsData & sensors_data)
 {
   // Process IMU data, translating it from ZED to ROS format
   // Refer to the ZED SDK documentation for more information on these operations

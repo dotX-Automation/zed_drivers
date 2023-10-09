@@ -187,6 +187,17 @@ params:
     read_only: false
     var_name: imu_filters_high_freqs_
 
+  imu_sampling_time:
+    type: integer
+    default_value: 2500
+    min_value: 0
+    max_value: 1000000
+    step: 1
+    description: "IMU sampling time [us]"
+    constraints: "Default is ZED IMU rate (400 Hz), 0 means no rate synchronization, might have to account for processing and ROS operations"
+    read_only: false
+    var_name: imu_sampling_time_
+
   link_namespace:
     type: string
     default_value: ""

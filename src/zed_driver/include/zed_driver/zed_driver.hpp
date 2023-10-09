@@ -159,6 +159,7 @@ private:
   camera_info_manager::CameraInfo right_info_{};
   camera_info_manager::CameraInfo right_sd_info_{};
   rclcpp::Clock system_clock_ = rclcpp::Clock(RCL_SYSTEM_TIME);
+  bool physical_camera_ = false;
 
   /* Camera sampling thread and routine. */
   std::thread camera_thread_;
@@ -182,6 +183,10 @@ private:
   cv::Mat left_frame_cv_, right_frame_cv_;
   cv::Mat left_frame_sd_cv_, right_frame_sd_cv_;
 
+  /* Sensors processing thread and routine. */
+  std::thread sensors_thread_;
+  void sensors_routine();
+
   /* IMU filters and data. */
   std::array<DynamicSystems::Control::LTISystem, 3> gyro_filters_;
   std::array<DynamicSystems::Control::LTISystem, 3> accel_filters_;
@@ -198,6 +203,7 @@ private:
   double imu_filters_sampling_time_ = 0.0;
   int64_t imu_filters_zoh_steps_ = 0;
   int64_t imu_filters_order_ = 0;
+  int64_t imu_sampling_time_ = 0;
   std::vector<double> imu_filters_low_freqs_ = {0.0, 0.0};
   std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
   std::string link_namespace_ = "";
@@ -232,7 +238,7 @@ private:
     const std::string & frame_id,
     double stereo_baseline = 0.0);
   void positional_tracking(sl::Pose & camera_pose);
-  void sensor_sampling(sl::SensorsData & sensors_data);
+  void sensors_processing(sl::SensorsData & sensors_data);
   cv::Mat sl_to_cv(sl::Mat & input);
   cv::Mat sl_to_cv_depth(sl::Mat & input);
   Image::SharedPtr frame_to_msg(cv::Mat & frame);

@@ -62,9 +62,6 @@ void ZEDDriverNode::camera_routine()
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
 
-  // Prepare sensors data
-  sl::SensorsData sensor_data;
-
   // Prepare image sampling data
   sl::Resolution camera_res = zed_.getCameraInformation().camera_configuration.resolution;
   sl::Resolution sd_res(sd_resolution_[0], sd_resolution_[1]);
@@ -95,6 +92,13 @@ void ZEDDriverNode::camera_routine()
   rgb_thread_ = std::thread(
     &ZEDDriverNode::rgb_routine,
     this);
+
+  // Spawn sensors processing thread (see zed_driver_sensors.cpp for more information)
+  if (physical_camera_) {
+    sensors_thread_ = std::thread(
+      &ZEDDriverNode::sensors_routine,
+      this);
+  }
 
   RCLCPP_INFO(this->get_logger(), "Camera sampling thread started");
 
@@ -197,11 +201,6 @@ void ZEDDriverNode::camera_routine()
         positional_tracking(camera_pose);
       }
     }
-
-    // Publish sensor data
-    if (zed_.getSensorsData(sensor_data, sl::TIME_REFERENCE::CURRENT) == sl::ERROR_CODE::SUCCESS) {
-      sensor_sampling(sensor_data);
-    }
   }
 
   // Join depth processing thread
@@ -213,6 +212,12 @@ void ZEDDriverNode::camera_routine()
   sem_post(&rgb_sem_2_);
   rgb_thread_.join();
   RCLCPP_INFO(this->get_logger(), "RGB processing thread joined");
+
+  // Join sensors processing thread
+  if (physical_camera_) {
+    sensors_thread_.join();
+    RCLCPP_INFO(this->get_logger(), "Sensors processing thread joined");
+  }
 
   // Release memory of shared resources
   depth_map_view_.free(sl::MEM::CPU);

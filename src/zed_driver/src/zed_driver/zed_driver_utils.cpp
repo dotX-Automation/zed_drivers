@@ -73,11 +73,13 @@ bool ZEDDriverNode::open_camera()
     sl::InputType input_type;
     input_type.setFromSerialNumber(static_cast<unsigned int>(serial_number));
     init_params.input = input_type;
+    physical_camera_ = true;
     RCLCPP_INFO(this->get_logger(), "Opening camera with serial number %ld", serial_number);
   } else if (!streaming_sender_ip.empty()) {
     sl::InputType input_type;
     input_type.setFromStream(sl::String(streaming_sender_ip.c_str()), streaming_sender_port);
     init_params.input = input_type;
+    physical_camera_ = false;
     RCLCPP_INFO(
       this->get_logger(),
       "Opening remote camera at %s:%d",
@@ -87,9 +89,12 @@ bool ZEDDriverNode::open_camera()
     sl::InputType input_type;
     input_type.setFromSVOFile(sl::String(svo_file.c_str()));
     init_params.input = input_type;
+    physical_camera_ = false;
     RCLCPP_INFO(this->get_logger(), "Opening SVO file %s", svo_file.c_str());
+  } else {
+    // If all the above fail, the first compatible ZED device found will be opened
+    physical_camera_ = true;
   }
-  // If all the above fail, the first compatible ZED device found will be opened
 
   sl::ERROR_CODE err;
 
@@ -266,6 +271,7 @@ void ZEDDriverNode::close_camera()
 {
   if (zed_.isOpened()) {
     zed_.close();
+    physical_camera_ = false;
   }
 }
 

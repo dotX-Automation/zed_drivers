@@ -95,8 +95,12 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
       camera_odom_rp_covariance.transpose() * pose_covariance_in_map * camera_odom_rp_covariance;
   }
 
+  // Filter position (smooths out jumps due to loop closures/relocalizations)
+  Eigen::Vector3d position_filtered = max_dposition_ == 0.0 ?
+    position : Eigen::Vector3d(position_filter_.evolve(position));
+
   PoseKit::Pose zed_pose(
-    position,
+    position_filtered,
     orientation,
     pose_header,
     pose_covariance);

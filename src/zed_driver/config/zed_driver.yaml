@@ -25,6 +25,7 @@
       - 10.0
     imu_sampling_time: 2500
     link_namespace: ""
+    max_dposition: 0.0
     odometry_frame: odom
     publish_tf: true
     resolution: VGA

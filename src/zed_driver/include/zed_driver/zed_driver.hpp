@@ -54,8 +54,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <dynamic_systems_control/control_lib.hpp>
-#include <dynamic_systems_control/lti.hpp>
+#include <dynamic_systems/control/lti.hpp>
+#include <dynamic_systems/control/utils.hpp>
 
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 

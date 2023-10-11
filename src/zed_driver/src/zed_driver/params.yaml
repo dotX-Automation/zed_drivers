@@ -198,6 +198,28 @@ params:
     read_only: false
     var_name: imu_sampling_time_
 
+  jump_filter_recovery_rate:
+    type: double
+    default_value: 1.0
+    min_value: 0.0
+    max_value: 1000000.0
+    step: 0.0
+    description: "Recovery rate of the position signal in case of jumps [m/s]"
+    constraints: "Changes require camera restart, 0.0 disables filtering"
+    read_only: false
+    var_name: jump_filter_recovery_rate_
+
+  jump_filter_trigger:
+    type: double
+    default_value: 0.5
+    min_value: 0.0
+    max_value: 1000000.0
+    step: 0.0
+    description: "Maximum distance between previous and current sample to detect a jump [m]"
+    constraints: "Changes require camera restart, 0.0 enables persistent filtering"
+    read_only: false
+    var_name: jump_filter_trigger_
+
   link_namespace:
     type: string
     default_value: ""

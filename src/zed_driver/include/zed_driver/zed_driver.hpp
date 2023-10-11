@@ -56,6 +56,7 @@
 
 #include <dynamic_systems/control/lti.hpp>
 #include <dynamic_systems/control/utils.hpp>
+#include <dynamic_systems/filters/jump_filter.hpp>
 
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
@@ -187,6 +188,9 @@ private:
   std::thread sensors_thread_;
   void sensors_routine();
 
+  /* Position filters and data. */
+  DynamicSystems::Filters::JumpFilterSystem position_filter_;
+
   /* IMU filters and data. */
   std::array<DynamicSystems::Control::LTISystem, 3> gyro_filters_;
   std::array<DynamicSystems::Control::LTISystem, 3> accel_filters_;
@@ -206,6 +210,8 @@ private:
   int64_t imu_sampling_time_ = 0;
   std::vector<double> imu_filters_low_freqs_ = {0.0, 0.0};
   std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
+  double jump_filter_recovery_rate_ = 0.0;
+  double jump_filter_trigger_ = 0.0;
   std::string link_namespace_ = "";
   std::string odom_frame_ = "";
   bool publish_tf_ = false;

@@ -58,6 +58,19 @@ void ZEDDriverNode::camera_routine()
         imu_filters_high_freqs_[1] * 2.0 * M_PI});
   }
 
+  // Initialize position filter
+  std::shared_ptr<DynamicSystems::Filters::JumpFilterInitParams> position_filter_params =
+    std::make_shared<DynamicSystems::Filters::JumpFilterInitParams>();
+  std::shared_ptr<DynamicSystems::Filters::JumpFilterSetupParams> position_filter_setup_params =
+    std::make_shared<DynamicSystems::Filters::JumpFilterSetupParams>();
+  position_filter_params->element_wise = false;
+  position_filter_params->rows = 3;
+  position_filter_params->cols = 1;
+  position_filter_setup_params->evol_diff = jump_filter_recovery_rate_ / double(fps_);
+  position_filter_setup_params->jump_diff = jump_filter_trigger_;
+  position_filter_.init(position_filter_params);
+  position_filter_.setup(position_filter_setup_params);
+
   // Prepare positional tracking data
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
@@ -235,6 +248,15 @@ void ZEDDriverNode::camera_routine()
 
   // Close camera
   close_camera();
+
+  // Finalize IMU filters
+  for (int i = 0; i < 3; i++) {
+    gyro_filters_[i].fini();
+    accel_filters_[i].fini();
+  }
+
+  // Finalize position filter
+  position_filter_.fini();
 }
 
 } // namespace ZEDDriver

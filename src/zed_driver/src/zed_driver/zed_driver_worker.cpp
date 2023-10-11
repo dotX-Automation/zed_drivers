@@ -66,7 +66,8 @@ void ZEDDriverNode::camera_routine()
   position_filter_params->element_wise = false;
   position_filter_params->rows = 3;
   position_filter_params->cols = 1;
-  position_filter_setup_params->slope = max_dposition_ / double(fps_);
+  position_filter_setup_params->evol_diff = jump_filter_recovery_rate_ / double(fps_);
+  position_filter_setup_params->jump_diff = jump_filter_trigger_;
   position_filter_.init(position_filter_params);
   position_filter_.setup(position_filter_setup_params);
 

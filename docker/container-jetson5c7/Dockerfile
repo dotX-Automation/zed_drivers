@@ -18,6 +18,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
   apt-transport-https \
+  nvidia-cudnn8-dev \
+  nvidia-tensorrt-dev \
   udev \
   zstd && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*

@@ -198,27 +198,49 @@ params:
     read_only: false
     var_name: imu_sampling_time_
 
-  jump_filter_recovery_rate:
+  jump_filter_update_lambda:
     type: double
-    default_value: 1.0
+    default_value: 0.9
     min_value: 0.0
-    max_value: 1000000.0
+    max_value: 1.0
     step: 0.0
-    description: "Recovery rate of the position signal in case of jumps [m/s]"
-    constraints: "Changes require camera restart, 0.0 disables filtering"
+    description: "Jump filter history weight"
+    constraints: "Changes require camera restart"
     read_only: false
-    var_name: jump_filter_recovery_rate_
+    var_name: jump_filter_update_lambda_
 
-  jump_filter_trigger:
+  jump_filter_jump_threshold:
     type: double
-    default_value: 0.5
+    default_value: 0.0
     min_value: 0.0
     max_value: 1000000.0
     step: 0.0
-    description: "Maximum distance between previous and current sample to detect a jump [m]"
-    constraints: "Changes require camera restart, 0.0 enables persistent filtering"
+    description: "Jump filter jump detection threshold [m/s]"
+    constraints: "Changes require camera restart, 0.0 disables the filter"
     read_only: false
-    var_name: jump_filter_trigger_
+    var_name: jump_filter_jump_threshold_
+
+  jump_filter_recovery_initial:
+    type: double
+    default_value: 0.0
+    min_value: 0.0
+    max_value: 1000000.0
+    step: 0.0
+    description: "Jump filter initial recovery rate [m/s]"
+    constraints: "Changes require camera restart"
+    read_only: false
+    var_name: jump_filter_recovery_initial_
+
+  jump_filter_recovery_increase:
+    type: double
+    default_value: 0.0
+    min_value: 0.0
+    max_value: 1000000.0
+    step: 0.0
+    description: "Jump filter recovery rate increment rate [m/s^2]"
+    constraints: "Changes require camera restart"
+    read_only: false
+    var_name: jump_filter_recovery_increase_
 
   link_namespace:
     type: string

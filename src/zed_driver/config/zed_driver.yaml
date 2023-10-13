@@ -24,8 +24,10 @@
       - 10.0
       - 10.0
     imu_sampling_time: 2500
-    jump_filter_recovery_rate: 0.0
-    jump_filter_trigger: 0.0
+    jump_filter_update_lambda: 0.0
+    jump_filter_jump_threshold: 0.0
+    jump_filter_recovery_initial: 0.0
+    jump_filter_recovery_increase: 0.0
     link_namespace: ""
     odometry_frame: odom
     publish_tf: true

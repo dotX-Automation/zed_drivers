@@ -96,7 +96,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   }
 
   // Filter position (smooths out jumps due to loop closures/relocalizations)
-  bool jump_filtering = jump_filter_recovery_rate_ > 0.0;
+  bool jump_filtering = jump_filter_jump_threshold_ > 0.0;
   Eigen::Vector3d position_filtered = jump_filtering ?
     Eigen::Vector3d(position_filter_.evolve(position)) : position;
 

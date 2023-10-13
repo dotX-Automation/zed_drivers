@@ -210,8 +210,10 @@ private:
   int64_t imu_sampling_time_ = 0;
   std::vector<double> imu_filters_low_freqs_ = {0.0, 0.0};
   std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
-  double jump_filter_recovery_rate_ = 0.0;
-  double jump_filter_trigger_ = 0.0;
+  double jump_filter_update_lambda_ = 0.0;
+  double jump_filter_jump_threshold_ = 0.0;
+  double jump_filter_recovery_initial_ = 0.0;
+  double jump_filter_recovery_increase_ = 0.0;
   std::string link_namespace_ = "";
   std::string odom_frame_ = "";
   bool publish_tf_ = false;

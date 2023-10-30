@@ -57,6 +57,8 @@ void ZEDDriverNode::camera_routine()
         imu_filters_low_freqs_[1] * 2.0 * M_PI,
         imu_filters_high_freqs_[1] * 2.0 * M_PI});
   }
+  imu_filters_settling_time_ = this->get_parameter("imu_filters_settling_time").as_double();
+  imu_filters_settling_time_elapsed_ = false;
 
   // Initialize position filter
   std::shared_ptr<DynamicSystems::Filters::JumpFilterInitParams> position_filter_params =

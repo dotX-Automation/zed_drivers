@@ -15,6 +15,7 @@
     enable_tracking: true
     fps: 30
     imu_filters_sampling_time: 0.0025
+    imu_filters_settling_time: 5.0
     imu_filters_zoh_steps: 1000
     imu_filters_order: 2
     imu_filters_low_freqs:

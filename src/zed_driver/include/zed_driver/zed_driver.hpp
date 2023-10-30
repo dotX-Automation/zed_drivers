@@ -186,6 +186,8 @@ private:
 
   /* Sensors processing thread and routine. */
   std::thread sensors_thread_;
+  rclcpp::Time sensors_start_time_{};
+  bool imu_filters_settling_time_elapsed_ = false;
   void sensors_routine();
 
   /* Position filters and data. */
@@ -205,6 +207,7 @@ private:
   bool enable_tracking_ = false;
   int fps_ = 15;
   double imu_filters_sampling_time_ = 0.0;
+  double imu_filters_settling_time_ = 0.0;
   int64_t imu_filters_zoh_steps_ = 0;
   int64_t imu_filters_order_ = 0;
   int64_t imu_sampling_time_ = 0;

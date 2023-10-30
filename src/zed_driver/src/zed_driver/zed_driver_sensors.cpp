@@ -26,6 +26,7 @@ void ZEDDriverNode::sensors_routine()
   // Run until stopped
   sl::ERROR_CODE err;
   sl::Timestamp last_imu_ts_{};
+  sensors_start_time_ = this->get_clock()->now();
   while (true) {
     // Check if thread should stop
     if (!running_.load(std::memory_order_acquire)) {
@@ -48,11 +49,11 @@ void ZEDDriverNode::sensors_routine()
       sensors_processing(sensor_data);
     } else {
       RCLCPP_ERROR(
-          this->get_logger(),
-          "ZEDDriverNode::sensors_routine: Failed to get sensors data (%d): %s",
-          static_cast<int>(err),
-          sl::toString(err).c_str());
-        continue;
+        this->get_logger(),
+        "ZEDDriverNode::sensors_routine: Failed to get sensors data (%d): %s",
+        static_cast<int>(err),
+        sl::toString(err).c_str());
+      continue;
     }
 
     // Enforce a specific sampling rate
@@ -136,8 +137,20 @@ void ZEDDriverNode::sensors_processing(sl::SensorsData & sensors_data)
         static_cast<double>(imu_data.linear_acceleration_covariance.r[i]);
     }
 
+    // Publish IMU data
     imu_pub_->publish(imu_msg);
-    imu_filtered_pub_->publish(imu_filtered_msg);
+
+    // Publish filtered IMU data if the settling time has elapsed
+    if ((imu_filters_settling_time_ > 0.0) && !imu_filters_settling_time_elapsed_) {
+      rclcpp::Duration elapsed = this->get_clock()->now() - sensors_start_time_;
+      if (elapsed.seconds() * 1e9 + elapsed.nanoseconds() > imu_filters_settling_time_ * 1e9) {
+        imu_filters_settling_time_elapsed_ = true;
+        RCLCPP_INFO(this->get_logger(), "IMU filters settling time elapsed");
+      }
+    }
+    if (!(imu_filters_settling_time_ > 0.0) || imu_filters_settling_time_elapsed_) {
+      imu_filtered_pub_->publish(imu_filtered_msg);
+    }
   }
 }
 

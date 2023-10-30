@@ -57,6 +57,22 @@ void ZEDDriverNode::camera_routine()
         imu_filters_low_freqs_[1] * 2.0 * M_PI,
         imu_filters_high_freqs_[1] * 2.0 * M_PI});
   }
+  imu_filters_settling_time_ = this->get_parameter("imu_filters_settling_time").as_double();
+  imu_filters_settling_time_elapsed_ = false;
+
+  // Initialize position filter
+  std::shared_ptr<DynamicSystems::Filters::JumpFilterInitParams> position_filter_params =
+    std::make_shared<DynamicSystems::Filters::JumpFilterInitParams>();
+  std::shared_ptr<DynamicSystems::Filters::JumpFilterSetupParams> position_filter_setup_params =
+    std::make_shared<DynamicSystems::Filters::JumpFilterSetupParams>();
+  position_filter_params->rows = 3;
+  position_filter_params->cols = 1;
+  position_filter_setup_params->update_lambda = jump_filter_update_lambda_;
+  position_filter_setup_params->jump_threshold = jump_filter_jump_threshold_;
+  position_filter_setup_params->recovery_initial = jump_filter_recovery_initial_ / double(fps_);
+  position_filter_setup_params->recovery_increase = jump_filter_recovery_increase_ / double(fps_ * fps_);
+  position_filter_.init(position_filter_params);
+  position_filter_.setup(position_filter_setup_params);
 
   // Initialize position filter
   std::shared_ptr<DynamicSystems::Filters::JumpFilterInitParams> position_filter_params =

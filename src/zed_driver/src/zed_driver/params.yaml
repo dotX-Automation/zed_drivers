@@ -139,6 +139,16 @@ params:
     read_only: false
     var_name: imu_filters_sampling_time_
 
+  imu_filters_settling_time:
+    type: double
+    default_value: 5.0
+    min_value: 0.0
+    max_value: 1000.0
+    step: 0.0
+    description: "IMU filters settling time [s]"
+    constraints: "Changes require camera restart, 0.0 disables the timer"
+    read_only: false
+
   imu_filters_zoh_steps:
     type: integer
     default_value: 1000

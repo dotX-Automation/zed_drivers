@@ -246,6 +246,8 @@ bool ZEDDriverNode::open_camera()
 
   // Print IMU->Left camera transform
   if (verbose_) {
+    std::cout << "Serial number: " << zed_info.serial_number << std::endl;
+
     sl::Transform imu_to_left = zed_info.sensors_configuration.camera_imu_transform;
     std::cout << "IMU to Left Camera transform:" << std::endl;
     std::cout << " - translation: [ "

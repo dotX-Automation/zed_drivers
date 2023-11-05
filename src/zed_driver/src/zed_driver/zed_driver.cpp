@@ -87,6 +87,8 @@ ZEDDriverNode::~ZEDDriverNode()
  */
 void ZEDDriverNode::init_publishers()
 {
+  bool sd_reliable = this->get_parameter("sd_reliable").as_bool();
+
   // base_link_odometry
   base_link_odom_pub_ = this->create_publisher<Odometry>(
     "~/base_link_odometry",
@@ -177,13 +179,14 @@ void ZEDDriverNode::init_publishers()
   // left/sd/camera_info
   left_sd_info_pub_ = this->create_publisher<CameraInfo>(
     "~/left/sd/camera_info",
-    DUAQoS::Visualization::get_datum_qos(1));
+    sd_reliable ? DUAQoS::get_datum_qos() : DUAQoS::Visualization::get_datum_qos(1));
 
   // left/sd/image_rect_color
   left_rect_sd_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/left/sd/image_rect_color",
+      sd_reliable ? DUAQoS::get_image_qos().get_rmw_qos_profile() :
       DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
 
   // right/camera_info
@@ -201,13 +204,14 @@ void ZEDDriverNode::init_publishers()
   // right/sd/camera_info
   right_sd_info_pub_ = this->create_publisher<CameraInfo>(
     "~/right/sd/camera_info",
-    DUAQoS::Visualization::get_datum_qos(1));
+    sd_reliable ? DUAQoS::get_datum_qos() : DUAQoS::Visualization::get_datum_qos(1));
 
   // right/sd/image_rect_color
   right_rect_sd_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/right/sd/image_rect_color",
+      sd_reliable ? DUAQoS::get_image_qos().get_rmw_qos_profile() :
       DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
 
   // left stream

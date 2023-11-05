@@ -37,6 +37,7 @@
       - 4.0
       - 2.0
       - 2.0
+    sd_reliable: false
     sd_resolution:
       - 640
       - 360

@@ -306,6 +306,13 @@ params:
     read_only: false
     var_name: roi_box_sizes_
 
+  sd_reliable:
+    type: bool
+    default_value: false
+    description: "Enables SD image topics reliable or best effort QoS."
+    constraints: ""
+    read_only: true
+
   sd_resolution:
     type: integer_array
     default_value:

@@ -70,11 +70,57 @@ bool ZEDDriverNode::open_camera()
 
   // Configure input source
   if (serial_number != -1) {
+    // First, scan all available cameras
+    std::vector<sl::DeviceProperties> available_zeds = sl::Camera::getDeviceList();
+    if (available_zeds.empty()) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "ZEDDriverNode::open_camera: No ZED cameras found");
+      return false;
+    }
+    RCLCPP_INFO(this->get_logger(), "Found %lu ZED cameras", available_zeds.size());
+    int req_id = -1;
+    for (auto & zed_properties : available_zeds) {
+      int id = zed_properties.id;
+      std::string zed_path(zed_properties.path.c_str());
+      unsigned int serial = zed_properties.serial_number;
+      std::string model(sl::toString(zed_properties.camera_model).c_str());
+      std::string input_type(sl::toString(zed_properties.input_type).c_str());
+      std::string state(sl::toString(zed_properties.camera_state).c_str());
+
+      if (verbose_) {
+        std::cout << "ZED " << id << " (" << zed_path << ")" << std::endl;
+        std::cout << " - Serial number: " << serial << std::endl;
+        std::cout << " - Model: " << model << std::endl;
+        std::cout << " - Input type: " << input_type << std::endl;
+        std::cout << " - State: " << state << std::endl << std::endl;
+      }
+
+      if (serial == static_cast<unsigned int>(serial_number)) {
+        req_id = id;
+        RCLCPP_INFO(
+          this->get_logger(),
+          "Opening camera %d matching S/N (%u = %u)",
+          id,
+          static_cast<unsigned int>(serial_number),
+          serial);
+      }
+    }
+
+    // Then, check if the requested serial number is available
+    if (req_id == -1) {
+      RCLCPP_FATAL(
+        this->get_logger(),
+        "ZEDDriverNode::open_camera: Failed to find requested camera (S/N %u)",
+        static_cast<unsigned int>(serial_number));
+      return false;
+    }
+
+    // Finally, open camera by ID
     sl::InputType input_type;
-    input_type.setFromSerialNumber(static_cast<unsigned int>(serial_number));
+    input_type.setFromCameraID(req_id);
     init_params.input = input_type;
     physical_camera_ = true;
-    RCLCPP_INFO(this->get_logger(), "Opening camera with serial number %ld", serial_number);
   } else if (!streaming_sender_ip.empty()) {
     sl::InputType input_type;
     input_type.setFromStream(sl::String(streaming_sender_ip.c_str()), streaming_sender_port);

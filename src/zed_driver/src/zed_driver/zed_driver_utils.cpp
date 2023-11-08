@@ -82,18 +82,18 @@ bool ZEDDriverNode::open_camera()
     int req_id = -1;
     for (auto & zed_properties : available_zeds) {
       int id = zed_properties.id;
-      std::string zed_path(zed_properties.path.c_str());
+      //std::string zed_path(zed_properties.path.c_str());
       unsigned int serial = zed_properties.serial_number;
-      std::string model(sl::toString(zed_properties.camera_model).c_str());
-      std::string input_type(sl::toString(zed_properties.input_type).c_str());
-      std::string state(sl::toString(zed_properties.camera_state).c_str());
+      //std::string model(sl::toString(zed_properties.camera_model).c_str());
+      //std::string input_type(sl::toString(zed_properties.input_type).c_str());
+      //std::string state(sl::toString(zed_properties.camera_state).c_str());
 
       if (verbose_) {
-        std::cout << "ZED " << id << " (" << zed_path << ")" << std::endl;
+        std::cout << "ZED " << id << std::endl; //" (" << zed_path << ")" << std::endl;
         std::cout << " - Serial number: " << serial << std::endl;
-        std::cout << " - Model: " << model << std::endl;
-        std::cout << " - Input type: " << input_type << std::endl;
-        std::cout << " - State: " << state << std::endl << std::endl;
+      //  std::cout << " - Model: " << model << std::endl;
+      //  std::cout << " - Input type: " << input_type << std::endl;
+      //  std::cout << " - State: " << state << std::endl << std::endl;
       }
 
       if (serial == static_cast<unsigned int>(serial_number)) {

@@ -25,12 +25,12 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*
 
 # Install the ZED SDK (no Python API, since it appears to mess with the ROS 2 installation)
-# We currently support version 4.0
+# We currently support version 4.1
 # Do some more black magic here to enable streaming features on Jetson inside a container
 # The syntax for the echo is:
 # # R${L4T_MAJOR_VERSION} (release), REVISION: ${L4T_MINOR_VERSION}.${L4T_PATCH_VERSION}
-RUN echo "# R35 (release), REVISION: 1.0" > /etc/nv_tegra_release && \
-  wget --no-check-certificate -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.0/l4t35.1/jetsons && \
+RUN echo "# R35 (release), REVISION: 4.0" > /etc/nv_tegra_release && \
+  wget --no-check-certificate -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.1/l4t35.4/jetsons && \
   chmod +x zed_sdk.run && \
   ./zed_sdk.run -- silent skip_python && \
   rm zed_sdk.run && \

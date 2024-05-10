@@ -20,8 +20,8 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*
 
 # Install the ZED SDK (no Python API, since it appears to mess with the ROS 2 installation)
-# We currently support version 4.0
-RUN wget -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.0/cu118/ubuntu22 && \
+# We currently support version 4.1
+RUN wget -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.1/cu118/ubuntu22 && \
   chmod +x zed_sdk.run && \
   ./zed_sdk.run -- silent skip_python && \
   rm zed_sdk.run && \

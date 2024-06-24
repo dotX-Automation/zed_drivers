@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -277,4 +277,4 @@ void ZEDDriverNode::camera_routine()
   position_filter_.fini();
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers

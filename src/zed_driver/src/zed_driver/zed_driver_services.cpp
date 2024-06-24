@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -66,4 +66,4 @@ void ZEDDriverNode::enable_callback(
   resp->set__message("");
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers

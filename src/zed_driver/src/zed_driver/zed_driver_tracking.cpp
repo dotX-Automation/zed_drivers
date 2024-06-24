@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -209,4 +209,4 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   }
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers

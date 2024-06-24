@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -604,4 +604,4 @@ bool ZEDDriverNode::validate_svo_compression(const rclcpp::Parameter & p)
   return true;
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers

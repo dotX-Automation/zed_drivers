@@ -98,7 +98,7 @@ using namespace visualization_msgs::msg;
 
 using namespace std_srvs::srv;
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -270,6 +270,6 @@ private:
   Image::SharedPtr frame_to_msg(cv::Mat & frame);
 };
 
-} // namespace ZEDDriver
+} // namespace zed_drivers
 
 #endif // ZED_DRIVERS__ZED_DRIVER_HPP

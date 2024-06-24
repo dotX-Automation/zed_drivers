@@ -17,6 +17,7 @@
         "vscode-icons-team.vscode-icons",
         "github.copilot",
         "ms-python.python",
+        "ms-python.autopep8",
         "njpwerner.autodocstring",
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
@@ -36,7 +37,8 @@
         "eamodio.gitlens",
         "donjayamanne.githistory",
         "zachflower.uncrustify",
-        "shardulm94.trailing-spaces"
+        "shardulm94.trailing-spaces",
+        "mrmlnc.vscode-json5"
       ],
       "settings": {
         // Set Zsh as the default shell

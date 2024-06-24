@@ -2,10 +2,23 @@
 
 # Setup script for DUA repositories and projects.
 #
-# Roberto Masocco <robmasocco@gmail.com>
-# Intelligent Systems Lab <isl.torvergata@gmail.com>
+# Roberto Masocco <r.masocco@dotxautomation.com>
 #
-# April 5, 2023
+# June 13, 2024
+
+# Copyright 2024 dotX Automation s.r.l.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # shellcheck disable=SC2207,SC2016
 
@@ -20,7 +33,7 @@ function usage {
   echo >&2 "    dua_setup.sh modify [-a UNIT1,UNIT2,...] [-r UNIT1,UNIT2,...] TARGET"
   echo >&2 "    dua_setup.sh clear TARGET"
   echo >&2 "    dua_setup.sh delete TARGET"
-  echo >&2 "See the README for more info."
+  echo >&2 "See dua-template.md for more info."
 }
 
 if [[ "${1-}" =~ ^-*h(elp)?$ ]]; then
@@ -106,7 +119,7 @@ function units_to_array {
 
 # Function to check that a target is valid.
 function check_target {
-  if [[ "${1-}" =~ ^(x86-base|x86-dev|x86-cudev|armv8-base|armv8-dev|jetson5c7|jetson4c5|jetson4c6)$ ]]; then
+  if [[ "${1-}" =~ ^(x86-base|x86-dev|x86-cudev|x86-cudev-ai|armv8-base|armv8-dev|jetson5|jetson5-ai|jetsonnano|jetsontx2)$ ]]; then
     return 0
   else
     echo >&2 "ERROR: Invalid target: ${1-}"
@@ -219,14 +232,14 @@ function create_target {
   fi
   if [[ "${NO_MKPASSWD-0}" == "1" ]]; then
     # Use Python 3 with passlib
-    HPSW=$(python3 -c "from passlib.hash import sha512_crypt; print(sha512_crypt.hash('${PASSWORD}', salt='intelsyslab', rounds=5000))")
+    HPSW=$(python3 -c "from passlib.hash import sha512_crypt; print(sha512_crypt.hash('${PASSWORD}', salt='duatemplate', rounds=5000))")
   else
-    HPSW=$(mkpasswd -m sha-512 "${PASSWORD}" intelsyslab)
+    HPSW=$(mkpasswd -m sha-512 "${PASSWORD}" duatemplate)
   fi
 
   SERVICE="${NAME}-${TARGET}"
   echo "Project name: ${NAME}"
-  echo "Servcice name: ${SERVICE}"
+  echo "Service name: ${SERVICE}"
   echo "Creating target ${TARGET} (password hash: ${HPSW}) ..."
 
   # Create the folder corresponding to the requested target
@@ -237,6 +250,8 @@ function create_target {
   cp "bin/dua-templates/context/bashrc" "docker/container-${TARGET}/"
   cp "bin/dua-templates/context/colcon-defaults.yaml.template" "docker/container-${TARGET}/colcon-defaults.yaml"
   cp "bin/dua-templates/context/commands.sh" "docker/container-${TARGET}/"
+  cp "bin/dua-templates/context/dua_submod.sh" "docker/container-${TARGET}/"
+  cp "bin/dua-templates/context/dua_subtree.sh" "docker/container-${TARGET}/"
   cp "bin/dua-templates/context/nanorc" "docker/container-${TARGET}/"
   cp "bin/dua-templates/context/p10k.zsh" "docker/container-${TARGET}/"
   cp "bin/dua-templates/context/ros2.sh" "docker/container-${TARGET}/"
@@ -252,13 +267,17 @@ function create_target {
   $SED -i "s/SERVICE/${SERVICE}/g" "docker/container-${TARGET}/.devcontainer/devcontainer.json"
 
   # Copy and configure docker-compose.yml
-  if [[ "${TARGET}" == "x86-cudev" ]] || [[ "${TARGET}" == "jetson4c5" ]] || [[ "${TARGET}" == "jetson4c6" ]]; then
+  if [[ "${TARGET}" == "x86-cudev" ]] || [[ "${TARGET}" == "x86-cudev-ai" ]] || [[ "${TARGET}" == "jetsonnano" ]] || [[ "${TARGET}" == "jetsontx2" ]]; then
     cp "bin/dua-templates/docker-compose.yaml.nvidia.template" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
+    if [[ "${TARGET}" == "jetsonnano" ]] || [[ "${TARGET}" == "jetsontx2" ]]; then
+      $SED -i "/- \/sys:\/sys/a\      - \/run\/jtop.sock:\/run\/jtop.sock" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
+    fi
   elif [[ "${TARGET}" == "armv8-dev" ]] && [[ "${MACOS-0}" == "1" ]]; then
     cp "bin/dua-templates/docker-compose.yaml.macos.template" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
-  elif [[ "${TARGET}" == "jetson5c7" ]]; then
+  elif [[ "${TARGET}" == "jetson5" ]] || [[ "${TARGET}" == "jetson5-ai" ]]; then
     cp "bin/dua-templates/docker-compose.yaml.template" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
     $SED -i "s/ipc: host/&\n    runtime: nvidia/g" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
+    $SED -i "/- \/sys:\/sys/a\      - \/run\/jtop.sock:\/run\/jtop.sock" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
   else
     cp "bin/dua-templates/docker-compose.yaml.template" "docker/container-${TARGET}/.devcontainer/docker-compose.yaml"
   fi

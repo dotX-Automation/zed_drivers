@@ -1,11 +1,24 @@
 # DUA environment image.
 #
-# Roberto Masocco <robmasocco@gmail.com>
-# Intelligent Systems Lab <isl.torvergata@gmail.com>
+# Roberto Masocco <r.masocco@dotxautomation.com>
 #
-# April 5, 2023
+# June 13, 2024
 
-FROM intelligentsystemslabutv/dua-foundation:x86-cudev
+# Copyright 2024 dotX Automation s.r.l.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM dotxautomation/dua-foundation:x86-cudev
 
 # Change this if you encounter problems with the default user
 ARG USER_UID=1000
@@ -34,8 +47,8 @@ ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/zed/lib
 
 # Create a user with Zsh as shell, hashed password, and add it to the sudoers
 # To generate the hashed password, run:
-#   mkpasswd -m sha-512 PASSWORD intelsyslab
-RUN useradd -r -m -s /usr/bin/zsh -u ${USER_UID} -G adm,dialout,internal,plugdev,sudo,tty,video -p '$6$intelsyslab$5d.R83Jldx4XgDqdfRUh3caOq5vzxBNRhLeeJyB7IvzfvMtOM38JGtz3ok8N5DI1oHUAWJjlcSOz3hdeq7RcK/' neo
+#   mkpasswd -m sha-512 PASSWORD duatemplate
+RUN useradd -r -m -s /usr/bin/zsh -u ${USER_UID} -G adm,dialout,internal,plugdev,sudo,tty,video -p '$6$duatemplate$Xh3Hi.MBlzNaAQmWF8C0tzw9S3h1tuewRO2qMVrt25A.aga0kn4Y4XIKt9nz1VDXyY0d8irL3GPVg3AlDb3c10' neo
 ENV HOME=/home/neo
 
 # Create workspace directory: host workspaces will be mounted here
@@ -75,12 +88,6 @@ COPY --chown=neo:neo ./p10k.zsh ./.p10k.zsh
 COPY --chown=neo:neo ./zshrc ./.zshrc
 
 ENV DEBIAN_FRONTEND=dialog
-
-# Add image information
-LABEL author.name="Roberto Masocco"
-LABEL author.email="robmasocco@gmail.com"
-LABEL organization.name="Intelligent Systems Lab"
-LABEL organization.email="isl.torvergata@gmail.com"
 
 # By default, start a basic shell
 CMD ["bash"]

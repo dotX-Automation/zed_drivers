@@ -19,14 +19,14 @@
 # limitations under the License.
 
 services:
-  zed_drivers-x86-cudev:
+  zed_drivers-x86-cudev-ai:
     build:
       context: ../
       network: host
       dockerfile: Dockerfile
       args:
         - USER_UID=1000
-    image: zed_drivers:x86-cudev
+    image: zed_drivers:x86-cudev-ai
     environment:
       TERM: xterm-256color
       DISPLAY:

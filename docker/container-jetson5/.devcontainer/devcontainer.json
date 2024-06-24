@@ -1,12 +1,12 @@
 {
-  "name": "zed_drivers-x86-cudev",
+  "name": "zed_drivers-jetson5",
   "dockerComposeFile": [
     "docker-compose.yaml"
   ],
   // Only start this service
-  "service": "zed_drivers-x86-cudev",
+  "service": "zed_drivers-jetson5",
   "runServices": [
-    "zed_drivers-x86-cudev"
+    "zed_drivers-jetson5"
   ],
   // Stop container if VS Code is shut down
   "shutdownAction": "stopCompose",

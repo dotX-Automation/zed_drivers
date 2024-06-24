@@ -18,7 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM dotxautomation/dua-foundation:x86-cudev
+FROM dotxautomation/dua-foundation:jetson5
 
 # Change this if you encounter problems with the default user
 ARG USER_UID=1000
@@ -29,19 +29,30 @@ ENV DEBIAN_FRONTEND=noninteractive
 # zed_drivers START #
 # Install ZED SDK dependencies
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends zstd && \
+  apt-get install -y --no-install-recommends \
+  apt-transport-https \
+  nvidia-cudnn8-dev \
+  nvidia-tensorrt-dev \
+  udev \
+  zstd && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*
 
 # Install the ZED SDK (no Python API, since it appears to mess with the ROS 2 installation)
 # We currently support version 4.1
-RUN wget -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.1/cu118/ubuntu22 && \
+# Do some more black magic here to enable streaming features on Jetson inside a container
+# The syntax for the echo is:
+# # R${L4T_MAJOR_VERSION} (release), REVISION: ${L4T_MINOR_VERSION}.${L4T_PATCH_VERSION}
+RUN echo "# R35 (release), REVISION: 4.0" > /etc/nv_tegra_release && \
+  wget --no-check-certificate -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.1/l4t35.4/jetsons && \
   chmod +x zed_sdk.run && \
   ./zed_sdk.run -- silent skip_python && \
   rm zed_sdk.run && \
+  ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/* && \
   chgrp -R internal /usr/local/zed && \
   chmod -R g+rwx /usr/local/zed
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/zed/lib
+ENV LOGNAME=neo
 # zed_drivers END #
 # IMAGE SETUP END #
 

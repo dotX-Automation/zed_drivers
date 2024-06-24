@@ -1,6 +1,6 @@
 # dua-template
 
-Project template for repositories based on the Distributed Unified Architecture.
+Project template based on the Distributed Unified Architecture.
 
 ## Abstract
 
@@ -18,7 +18,7 @@ This project creates a common development environment making use of three tools,
 
 ### Why Docker?
 
-Docker is a tool that allows to create and run containers, which are isolated environments that can be used to run software in a reproducible way, with no additional overhead. It is a very powerful tool that can be used to create and store reproducible environments for any software, and that can be used to run software in a way that is independent of the operating system and hardware it is running on. This is particularly useful for robotics, where the same software can be run on different machines, with different operating systems and hardware, and still work as expected, implying that one can develop code inside an environment that imitates or is even an extension of the one that will run on the target machine, including development tools.
+Docker is a tool that allows to create and run containers, which are isolated environments that can be used to run software in a reproducible way, with no additional overhead. It is a very powerful tool that can be used to create and store reproducible environments for any software, and that can be used to run software in a way that is independent of the operating system and hardware it is running on. This is particularly useful for robotics, where the same software can be run on different machines, with different operating systems and hardware, and still work as expected, implying that one can develop code inside an environment that imitates or is even an extension of the one that will run on the target machine, only adding development tools on top of a base one.
 
 DUA ultimately allows a developer to build Docker images that include all the software required to run a project, starting from predefined environments that include common tools for robotics. Such environments are Docker images, denoted in the following as *base units*, that include:
 
@@ -27,6 +27,7 @@ DUA ultimately allows a developer to build Docker images that include all the so
 - **C/C++ toolchains and debuggers**.
 - A **Python 3** installation with basic packages.
 - The **[`OpenCV`](opencv.org) computer vision library**.
+- The **[`Eigen`](eigen.tuxfamily.org) linear algebra library**.
 - Additional development tools and libraries, depending on the platform at which the base unit is targeted.
 
 The quantity of development tools installed in every base unit depends on the target platform, and is meant to be as minimal as possible. The idea is that, once a base unit is built, it can be used as a starting point for other Docker images that include only the software required to run a specific project. This allows to create a Docker image that is as small as possible, and that can be easily shared and deployed on different machines.
@@ -42,7 +43,9 @@ So, to benefit from Docker in robotics and to fully support the tools listed in 
 - Containers are granted full access to the hardware, since `/dev` and `/sys` are mounted inside the container; this is necessary for software modules that require access to the hardware.
 - The internal user of the container is a member of the `sudo` group inside the container; however, it has a password, that must be specified when configuring the project as explained in [Creating a target](#creating-a-target) and that is only copied as `sha-512` salted hash in the `Dockerfile`, so its plain text is never stored anywhere.
 
-**Please note that it is the end user's responsibility to ensure that the Docker configuration files are not modified in a way that would compromise the security of the system, and that the internal user password is not lost.** If the password is lost, the end user can always change it by modifying the `Dockerfile` and rebuilding the image.
+**Please note that it is the end user's responsibility to ensure that the Docker configuration files, the Docker containers based on this work, or any other part of this work, do not compromise the security and safety of the systems on which they use them, and that the internal user password is not lost. The creators of this work decline any responsibility regarding any sort of damage caused by, or imputable to, the use of this project and its derived works. See also the attached [`LICENSE`](LICENSE) for the complete usage terms to which you must agree.**
+
+If the password is lost, the end user can always change it by modifying the `Dockerfile` and rebuilding the image.
 
 If the end user requires a different configuration, they have full control over the Docker configuration files, and can modify them as they see fit.
 
@@ -56,7 +59,7 @@ Visual Studio Code is a free, open-source, cross-platform IDE that can be used t
 
 ## Support and limitations
 
-This work is developed on, and supposed to run on, Linux-based systems. It can work, and has been independently tested, on different machines running Windows or macOS, although not all features might be available due to limitations of the Docker engine on those platforms.
+This work is developed on, and mainly supposed to run on, Linux-based systems. It can work, and has been independently tested, on different machines running Windows or macOS, although not all features might be available due to limitations of the Docker engine on those platforms.
 
 The officially supported platforms are:
 
@@ -128,18 +131,22 @@ The following limitations apply to Apple Silicon Macs only:
 
 - **3D hardware acceleration**: The Docker Engine cannot access the graphics card properly, meaning that either the drivers available in the container are not appropriate or the performance is extremely poor. This implies that tools like Gazebo and RViz will not work. This is a limitation of the Docker Engine on Apple Silicon Macs, and it is not possible to overcome it.
 
-## Sibling repositories
+## Sibling works
 
 This template is one of three parallel projects that, together, form the DUA framework. The other two are:
 
-- [`dua-foundation`](https://github.com/IntelligentSystemsLabUTV/dua-foundation): `Dockerfiles` and other configuration files that are required to build the Docker images used as base by DUA projects, known as *base units*.
-- [`dua-utils`](https://github.com/IntelligentSystemsLabUTV/dua-utils): A collection of libraries and other software packages that can be used in robotics projects, and that are well integrated in DUA-based projects.
+- [`dua-foundation`](https://github.com/dotX-Automation/dua-foundation): `Dockerfiles` and other configuration files that are required to build the Docker images used as base by DUA projects, known as *base units*.
+- [`dua-utils`](https://github.com/dotX-Automation/dua-utils): A collection of libraries and other software packages that can be used in robotics projects, and that are well integrated in DUA-based projects.
 
 Finally, the directory tree is partially organized as a ROS 2 workspace that can be easily managed with Visual Studio Code, and the basic layout for this is defined in [`robmasocco/vscode_ros2_workspace`](https://github.com/robmasocco/vscode_ros2_workspace).
 
 ## Template structure
 
 The template is organized as follows, as can be inferred following the directory tree starting from this file.
+
+### `.github`
+
+Contains workflows and other GitHub-related things.
 
 ### `.vscode`
 
@@ -192,7 +199,7 @@ and an explanation of all relevant commands follows in the next sections. Before
 
 - **Project**: indicates a single Git repository, independently of its role or purpose.
 - **Unit**: indicates a software package, library, or collection thereof, that is developed as a DUA-based project; this name implies that while it is self-sufficient, can be executed inside its own container in parallel to other ones and share data with them, it can also be integrated as a sub-project into a larger one to form a control architecture.
-- **Target**: indicates a single Docker image that is used in a project, and that is built from a single `Dockerfile` and `docker-compose.yaml` pair plus many other configuration files; a target can be used to run a single unit, or multiple ones, or even a whole control architecture; the name resembles the meaning of the term *target* in the context of a `Makefile`, and is used to refer to the same concept in this context: each unit or architecture can have multiple targets, *i.e.*, Docker images, each one supporting a different hardware platform, System on Chip (SoC), and so on. The software that makes up a project is ensured to run appropriately and similarly in all targets, since their images are always based on *base units* provided in [`dua-foundation`](https://github.com/IntelligentSystemsLabUTV/dua-foundation).
+- **Target**: indicates a single Docker image that is used in a project, and that is built from a single `Dockerfile` and `docker-compose.yaml` pair plus many other configuration files; a target can be used to run a single unit, or multiple ones, or even a whole control architecture; the name resembles the meaning of the term *target* in the context of a `Makefile`, and is used to refer to the same concept in this context: each unit or architecture can have multiple targets, *i.e.*, Docker images, each one supporting a different hardware platform, System on Chip (SoC), and so on. The software that makes up a project is ensured to run appropriately and similarly in all targets, since their images are always based on *base units* provided in [`dua-foundation`](https://github.com/dotX-Automation/dua-foundation).
 
 **[`dua_setup.sh`](bin/dua_setup.sh) can be executed both inside and outside a DUA container, but must always be executed from a project's root directory, *i.e.*, like this**
 
@@ -210,7 +217,7 @@ dua_setup.sh create [-a UNIT1,UNIT2,...] NAME TARGET
 
 creates a new target, *i.e.*, a Docker image, for a project. The `-a` option can be used to specify a list of units that will be integrated in the new target, and the `NAME` argument is the name of the project.
 
-The `TARGET` argument is the name of the target. `TARGET` must be a valid target name, *i.e.*, one of the image tags in [`dua-foundation`](https://github.com/IntelligentSystemsLabUTV/dua-foundation).
+The `TARGET` argument is the name of the target. `TARGET` must be a valid target name, *i.e.*, one of the image tags in [`dua-foundation`](https://github.com/dotX-Automation/dua-foundation).
 
 **A password is required for all projects since the container's internal user runs with elevated privileges and has full access to the host's network stack and hardware devices.** It will be asked for during the creation of the target, and will be stored in hashed form in the target's `Dockerfile`.
 
@@ -223,8 +230,8 @@ The `TARGET` argument is the name of the target. `TARGET` must be a valid target
 
 Once a target has been created, it can be managed using Docker and
 
-- Visual Studio Code, in the case of development targets: install the `Remote - Containers` extension and open the `container-TARGET` folder "in container" using the integrated commands, and the IDE will be set up automatically after the container is built.
-- Compose, in the case of deployment containers to be run on SoCs: just modify the `container-TARGET/devcontainer/docker-compose.yaml` file to add the necessary configuration options, and then run `docker-compose up` from the `container-TARGET` directory.
+- Visual Studio Code: install the `Remote - Containers` extension and open the `container-TARGET` folder "in container" using the integrated commands, and the IDE will be set up automatically after the container is built.
+- Compose: just modify the `container-TARGET/.devcontainer/docker-compose.yaml` file to add the necessary configuration options, and then run `docker-compose up` from the `container-TARGET` directory. On SBCs and similar devices, the `restart` policy may also be useful, to ensure that the container is restarted automatically at every boot.
 
 Containers are meant to be run in detached mode, *i.e.*, with the `-d` option, and can be accessed using the `docker exec` command. For example,
 
@@ -321,25 +328,60 @@ removes a target, *i.e.*, the `container-TARGET` directory and all its contents.
 
 The previous sections explained how a project can be configured and managed, hinting at how other DUA-based projects can be integrated as sub-portions, *i.e.*, units, of a greater one, from the point of view of the Docker engine. However, this is not enough to ensure that the units are properly integrated in the project at hand, and that they can be used as intended.
 
-Given an additional unit to be integrated in a project, either as a full DUA unit in `src/` or an external tool in `tools/`, the project repository and git history must both contain a full copy of the unit, a task that can be carried on with Git itsef. This is to ensure simple management of dependencies, as well as to be able to fix specific versions of all dependent units.
+Given an additional unit to be integrated in a project, either as a full DUA unit in `src/` or an external tool in `tools/`, the project repository and Git history must both contain a full copy of the unit, a task that can be carried on with Git itsef. This is to ensure simple management of dependencies, as well as to be able to fix specific versions of all dependent units.
 
-The Git feature that makes this possible in DUA is that of **subtrees**. An excellent tutorial on the subject can be found [here](https://www.atlassian.com/git/tutorials/git-subtree). Essentially, integrating another Git repository as a subtree ensures
+The Git features that make this possible in DUA are **submodules** and **subtrees**. Excellent tutorials on both subjects can be found [here](https://www.atlassian.com/git/tutorials/git-subtree) and [here](https://www.atlassian.com/git/tutorials/git-submodule), respectively.
+
+### On Git submodules
+
+**Submodules are the preferred way to include units in a DUA project when you plan to actively work on the units themselves.**
+
+A submodule is a Git repository that is included in another Git repository as a subdirectory. This means that the submodule is a separate repository, with its own history, branches, and tags, that is included in the parent repository as a subdirectory. This is particularly useful when the submodule is actively developed, and when changes to it must be pushed back to the original repository.
+
+The main drawback of submodules is that they require additional commands to be managed, and that special attention must be paid to the point of the Git history in which the submodule is found before making any changes inside it, or worse, committing them. Moreover, the reference commit of the submodule in the parent repository must always be updated manually.
+
+Nonetheless, submodules are a very powerful tool that, when used correctly, can make the simultaneous development of multiple projects much easier. For this reason, given the degree of modularity that DUA aims to achieve, they are supported by this template and their usage is encouraged as the preferred way to include units in a DUA project in any case.
+
+The [`dua-submod`](bin/dua-templates/context/dua_submod.sh) command has been provided to act as an alias to some everyday submodule commands. It can be sourced and invoked from wherever, from both inside and outside containers. However, since the `git submodule` command allows to perform a wide variety of operations, each with many arguments, no more submodule commands are wrapped.
+
+### On Git subtrees
+
+**Subtrees are the preferred way to include units in a DUA project when you do not plan to actively work on the units themselves.**
+
+Essentially, integrating another Git repository as a subtree ensures
 
 - the possibility of specifing the commit, branch, or tag of the repository to be integrated;
-- a simple management, since files and Git histories will be merged in those of the parent (project) repository, with little to no additional commands required to keep them in sync;
+- a simple management, since files and Git histories will be merged in those of the parent (project) repository, with little to no additional commands required to keep them in sync, resulting in a single repository that contains all the files and histories of its subtrees;
 - the possibility of carrying on development on the subtree, pushing and pulling changes to and from it, or just modifying it locally within the scope of the current project.
 
-Even if subtrees require very few commands to be managed, there is still room for mistakes. To minimize their possibility, the [`dua_subtrees.sh`](bin/dua_subtrees.sh) script has been provided. It can be executed from wherever, from both inside and outside containers, and it will provide a simple interface to manage subtrees. It wraps subtree commands by specifying default options. Its helper and source code constitute its best documentation, so go check it out. **It is highly recommended to include DUA units as subtrees using this script.**
+However, they have one major drawback: they may make Git history management more computationally difficult, since the history of the subtree is merged in the one of the parent repository. This often leads to Git having to go through the whole history of the subtree to find the changes that are relevant to the parent repository, to ensure that a coherent history is maintained; this could easily become a slow process, which is why the use of subtrees is discouraged when the subtree is actively developed.
 
-### On Git submodules incompatibility
+Even if subtrees require very few commands to be managed, there is still room for mistakes. To minimize their possibility, the [`dua-subtree`](bin/dua-templates/context/dua_subtree.sh) command has been provided. It can be sourced and invoked from wherever, from both inside and outside containers, and it will provide a simple interface to manage subtrees. It wraps subtree commands by specifying default options. Its helper and source code constitute its best documentation, so go check it out. **It is highly recommended to use this command to include DUA units as subtrees.**
 
-**DUA is not compatible with Git submodules**, by a precise design choice.
+### On the incompatibilities between subtrees and submodules
 
-This is because submodules are meant to be used to integrate external projects, *i.e.*, projects that are not part of the same repository. This is not the case in DUA, where the units are meant to be part of the same repository, to make management as easy and painless as possible. Moreover, submodules are exceptionally hard to manage among large teams, and even a simple usage generally results in Git history corruption or worse.
+- **If a project that has submodules is included as a subtree**, **submodules will not be cloned since they are managed externally from the Git source tree**. This means that the subtree's `.gitmodules` file must be copied to the root of the parent project, its paths and other settings appropriately modified, and only then submodule commands will work. **In case you plan on recursively including projects in more than one level, submodules are definitely the best choice.**
+- **If a project that has subtrees is included as a submodule**, everything should work normally since the history of the submodule will contain the history of its subtree and appear as a single history.
 
-In particular, if a project that has submodules is included as a subtree, **submodules will not be cloned since they are managed externally from the Git source tree**. This means that the subtree's `.gitmodules` file must be added to the current project, ita paths and other settings appropriately modified, and only then submodule commands will work. This is a very cumbersome process, and it is not worth the effort, since it makes the easy modularity that DUA strives to achieve much more difficult to manage.
+## Updating the template
 
-As such, the DUA framework will never support submodules. If a third-party or older project that uses submodules is to be converted into a DUA project, it must either be restructured to use subtrees or simply not use submodules, or **it will never be possible to integrate it as a unit into other DUA projects without tinkering with `.gitmodules` files**, thus spreading submodules to projects that have nothing to do with them. **It is, however, possible to use submodules in a DUA project, but only if it is not meant to be integrated in other projects as a unit.**
+DUA is an active projects, and updates are performed regularly. These mainly concern the base units, but template updates are not uncommon.
+
+Since `dua-template` is the core of every DUA project, and also to ensure that every project can be easily synchronized with the latest layout of the base units, a [template update workflow](.github/workflows/sync-dua-template.yaml) is provided.
+
+If enabled, it runs on every push to the `master` branch, every night at 00:01, and can also be run manually.
+
+In case your default branch is not `master`, you must modify the workflow file accordingly.
+
+In case template updates are found, the workflow will:
+
+- create a new `chore/*` branch from the `master` branch;
+- update template files in the branch;
+- create a pull request from the `chore/*` branch to the `master` branch.
+
+The workflow can run again even if the pull request is not yet merged: if new updates are found, they will be committed to the same branch, and the pull request will be updated.
+
+**The workflow will not modify files that belong to already configured containers.** This is intended to avoid conflicts with the user's work, and to ensure that the user has full control over the contents of the `Dockerfile`, `docker-compose.yaml`, and other files of their targets. This is also why a pull request is opened every time: it is also meant to allow the user to review the changes and modify their targets as they see fit.
 
 ## Feedback
 
@@ -347,10 +389,14 @@ If you have any questions or suggestions, please open an issue or contact us her
 
 ---
 
-## License
+## Copyright and License
 
-This work is licensed under the GNU General Public License v3.0. See the [`LICENSE`](LICENSE) file for details.
+Copyright 2024 dotX Automation s.r.l.
 
-## Copyright
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
 
-Copyright (c) 2023, Intelligent Systems Lab, University of Rome Tor Vergata
+You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.

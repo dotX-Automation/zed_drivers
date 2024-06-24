@@ -28,9 +28,25 @@ ENV DEBIAN_FRONTEND=noninteractive
 # IMAGE SETUP START #
 # zed_drivers START #
 # Install ZED SDK dependencies
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends zstd && \
+# NOTE: Here we require an upgrade to make sure we have the latest Nvidia libraries.
+RUN apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages \
+  libcudnn8 \
+  libcudnn8-dev \
+  zstd && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*
+
+# Install libcublas-12-0 libraries manually to fix some incompatibilities in ZED SDK dependencies
+# Ref.: https://stackoverflow.com/questions/76646474/could-not-load-library-libcublaslt-so-12-error-libcublaslt-so-12-cannot-open
+WORKDIR /tmp
+RUN apt-get update && \
+  apt-get download libcublas-12-0 && \
+  mkdir contents && \
+  dpkg-deb -xv libcublas-12-0_12.0.2.224-1_amd64.deb contents/ && \
+  mv contents/usr/local/cuda-12.0/targets/x86_64-linux/lib/* /usr/local/cuda/lib64/ && \
+  rm -rf contents libcublas-12-0_12.0.2.224-1_amd64.deb && \
+  ldconfig && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*/apt/lists/*
+WORKDIR /root
 
 # Install the ZED SDK (no Python API, since it appears to mess with the ROS 2 installation)
 # We currently support version 4.1

@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -265,4 +265,4 @@ void ZEDDriverNode::depth_routine()
   }
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers

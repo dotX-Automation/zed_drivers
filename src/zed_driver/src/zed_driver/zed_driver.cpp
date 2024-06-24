@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 /**
@@ -274,7 +274,7 @@ void ZEDDriverNode::init_tf2()
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers
 
 #include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(ZEDDriver::ZEDDriverNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(zed_drivers::ZEDDriverNode)

@@ -120,7 +120,7 @@ ament_target_dependencies(zed_driver
   tf2_eigen
   tf2_ros
   visualization_msgs)
-rclcpp_components_register_nodes(zed_driver "ZEDDriver::ZEDDriverNode")
+rclcpp_components_register_nodes(zed_driver "zed_drivers::ZEDDriverNode")
 
 # ZED Driver standalone application
 add_executable(zed_driver_app
@@ -163,8 +163,5 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-# Make sure that the library path is exported even if the library itself is not
-ament_environment_hooks("${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
 
 ament_package()

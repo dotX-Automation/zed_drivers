@@ -1,5 +1,5 @@
 header_include_path: zed_driver/zed_driver.hpp
-namespace: ZEDDriver
+namespace: zed_drivers
 node_class_name: ZEDDriverNode
 
 params:

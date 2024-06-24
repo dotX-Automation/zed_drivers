@@ -37,7 +37,7 @@ using namespace DUAAppManagement;
 int main(int argc, char ** argv)
 {
   ROS2AppManager<rclcpp::executors::SingleThreadedExecutor,
-    ZEDDriver::ZEDDriverNode> app_manager(
+    zed_drivers::ZEDDriverNode> app_manager(
     argc,
     argv,
     "zed_driver_app");

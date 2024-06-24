@@ -24,7 +24,7 @@
 
 #include <zed_driver/zed_driver.hpp>
 
-namespace ZEDDriver
+namespace zed_drivers
 {
 
 
@@ -169,4 +169,4 @@ void ZEDDriverNode::sensors_processing(sl::SensorsData & sensors_data)
   }
 }
 
-} // namespace ZEDDriver
+} // namespace zed_drivers

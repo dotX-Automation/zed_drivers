@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro"
-       xmlns:ignition="http://ignitionrobotics.org/schema" name="zed">
+       xmlns:ignition="http://ignitionrobotics.org/schema"
+       name="zed2i">
 
   <!-- ZED2i -->
   <xacro:property name="zed2i_z" value = "0.0373"/>
@@ -10,7 +11,7 @@
   <xacro:property name="zed2i_imu_to_left_z" value = "-0.00022"/>
 
   <!-- Function -->
-  <xacro:macro name="zed">
+  <xacro:macro name="zed2i">
     <!-- ZED2i -->
     <link name="zed2i_center_link"></link>
 

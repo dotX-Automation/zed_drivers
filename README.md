@@ -5,6 +5,8 @@ ROS 2 drivers and software packages for the Stereolabs ZED cameras.
 ## Contents
 
 - [`zed_driver`](src/zed_driver/README.md): General-purpose ROS 2 driver for the ZED cameras.
+- [`zed_description`](src/zed_description/): Description files for ZED cameras.
+- [`zed_drivers`](src/zed_drivers/): Metapackage.
 
 ## Usage
 

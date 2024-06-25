@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro"
+       xmlns:ignition="http://ignitionrobotics.org/schema" name="zed">
+
+  <!-- ZED2i -->
+  <xacro:property name="zed2i_z" value = "0.0373"/>
+  <xacro:property name="zed2i_baseline" value = "0.12"/>
+  <xacro:property name="zed2i_imu_to_left_x" value = "0.002"/>
+  <xacro:property name="zed2i_imu_to_left_y" value = "0.023"/>
+  <xacro:property name="zed2i_imu_to_left_z" value = "-0.00022"/>
+
+  <!-- Function -->
+  <xacro:macro name="zed">
+    <!-- ZED2i -->
+    <link name="zed2i_center_link"></link>
+
+    <joint name="zed2i_center_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="zed2i_center_link"/>
+      <origin rpy="0 -${zed2i_tilt} 0" xyz="${zed2i_to_base_link_x} ${zed2i_to_base_link_y} ${zed2i_to_base_link_z}"/>
+    </joint>
+    <link name="zed2i_right_link"></link>
+
+    <joint name="zed2i_right_joint" type="fixed">
+      <parent link="zed2i_center_link"/>
+      <child link="zed2i_right_link"/>
+      <origin rpy="${-pi/2} 0 ${-pi/2}" xyz="${zed2i_z/2} -${zed2i_baseline/2} 0"/>
+    </joint>
+    <link name="zed2i_link"></link>
+    <joint name="zed2i_joint" type="fixed">
+      <parent link="zed2i_center_link"/>
+      <child link="zed2i_link"/>
+      <origin rpy="0 0 0" xyz="${zed2i_z/2} ${zed2i_baseline/2} 0"/>
+    </joint>
+    <link name="zed2i_left_link"></link>
+    <joint name="zed2i_left_joint" type="fixed">
+      <parent link="zed2i_center_link"/>
+      <child link="zed2i_left_link"/>
+      <origin rpy="${-pi/2} 0 ${-pi/2}" xyz="${zed2i_z/2} ${zed2i_baseline/2} 0"/>
+    </joint>
+    <link name="zed2i_imu_link"></link>
+    <joint name="zed2i_imu_joint" type="fixed">
+      <parent link="zed2i_link"/>
+      <child link="zed2i_imu_link"/>
+      <origin rpy="0 0 0" xyz="${zed2i_imu_to_left_x} ${zed2i_imu_to_left_y} ${zed2i_imu_to_left_z}"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

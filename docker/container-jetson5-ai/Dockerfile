@@ -40,8 +40,10 @@ RUN apt-get update && \
 # Do some more black magic here to enable streaming features on Jetson inside a container
 # The syntax for the echo is:
 # # R${L4T_MAJOR_VERSION} (release), REVISION: ${L4T_MINOR_VERSION}.${L4T_PATCH_VERSION}
+# NOTE: We install an SDK version for a newer version of JetPack than that of this base image, due
+# to an incompatibility with the deprecated libnvbuf. Should work.
 RUN echo "# R35 (release), REVISION: 2.1" > /etc/nv_tegra_release && \
-  wget --no-check-certificate -nc -O zed_sdk.run https://download.stereolabs.com/zedsdk/4.1/l4t35.2/jetsons && \
+  wget --no-check-certificate -nc -O zed_sdk.run  https://download.stereolabs.com/zedsdk/4.1/l4t35.4/jetsons && \
   chmod +x zed_sdk.run && \
   ./zed_sdk.run -- silent skip_python && \
   rm zed_sdk.run && \

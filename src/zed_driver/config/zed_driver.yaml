@@ -1,48 +1,24 @@
 /zed/zed_driver:
   ros__parameters:
     autostart: true
+    base_link_name: base_link
     camera_settings_path: ""
     confidence: 20
     depth_max_distance: 5.0
     depth_min_distance: 0.5
     depth_mode: NEURAL
-    depth_rate: 1
+    depth_rate: 2
     depth_resolution:
       - 480
       - 270
     depth_stabilization: 1
-    eigen_max_cores: 4
-    enable_tracking: true
     fps: 30
-    imu_filters_sampling_time: 0.0025
-    imu_filters_settling_time: 5.0
-    imu_filters_zoh_steps: 1000
-    imu_filters_order: 2
-    imu_filters_low_freqs:
-      - 0.5
-      - 0.5
-    imu_filters_high_freqs:
-      - 10.0
-      - 10.0
+    frame_prefix: ""
     imu_sampling_time: 2500
-    jump_filter_update_lambda: 0.0
-    jump_filter_jump_threshold: 0.0
-    jump_filter_recovery_initial: 0.0
-    jump_filter_recovery_increase: 0.0
-    link_namespace: ""
-    odometry_frame: odom
+    local_frame: odom
     publish_tf: true
-    resolution: VGA
-    roi_box_sizes:
-      - 4.0
-      - 2.0
-      - 2.0
-    sd_reliable: false
-    sd_resolution:
-      - 640
-      - 360
+    resolution: HD720
     serial_number: -1
-    stream_hd: false
     streaming_adaptative_bitrate: true
     streaming_bitrate: 6000
     streaming_chunk_size: 16084
@@ -57,10 +33,16 @@
     svo_transcode_stream: false
     texture_confidence: 100
     tracking_depth_min_range: -1.0
+    tracking_enable: true
     tracking_enable_area_memory: true
     tracking_enable_imu_fusion: true
     tracking_enable_pose_smoothing: true
     tracking_set_gravity_as_origin: true
     use_sim_time: false
     verbose: true
-    video_rate: 10
+    video_sd_reliable: false
+    video_sd_resolution:
+      - 640
+      - 360
+    video_stream_hd: false
+    video_stream_rate: 10

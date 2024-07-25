@@ -30,7 +30,7 @@ namespace zed_drivers
 /**
  * @brief Camera sampling routine: gets and publishes data from all sensors.
  *
- * @throws RuntimeError if the camera cannot be opened.s
+ * @throws RuntimeError if the camera cannot be opened.
  */
 void ZEDDriverNode::camera_routine()
 {
@@ -53,49 +53,13 @@ void ZEDDriverNode::camera_routine()
             std::to_string(errno) + ")");
   }
 
-  // Initialize IMU filters
-  for (int i = 0; i < 3; i++) {
-    gyro_filters_[i].make_butterworth(
-      imu_filters_sampling_time_,
-      imu_filters_zoh_steps_,
-      DynamicSystems::Control::ButterworthType::BAND_PASS,
-      imu_filters_order_,
-      {
-        imu_filters_low_freqs_[0] * 2.0 * M_PI,
-        imu_filters_high_freqs_[0] * 2.0 * M_PI});
-    accel_filters_[i].make_butterworth(
-      imu_filters_sampling_time_,
-      imu_filters_zoh_steps_,
-      DynamicSystems::Control::ButterworthType::BAND_PASS,
-      imu_filters_order_,
-      {
-        imu_filters_low_freqs_[1] * 2.0 * M_PI,
-        imu_filters_high_freqs_[1] * 2.0 * M_PI});
-  }
-  imu_filters_settling_time_ = this->get_parameter("imu_filters_settling_time").as_double();
-  imu_filters_settling_time_elapsed_ = false;
-
-  // Initialize position filter
-  std::shared_ptr<DynamicSystems::Filters::JumpFilterInitParams> position_filter_params =
-    std::make_shared<DynamicSystems::Filters::JumpFilterInitParams>();
-  std::shared_ptr<DynamicSystems::Filters::JumpFilterSetupParams> position_filter_setup_params =
-    std::make_shared<DynamicSystems::Filters::JumpFilterSetupParams>();
-  position_filter_params->rows = 3;
-  position_filter_params->cols = 1;
-  position_filter_setup_params->update_lambda = jump_filter_update_lambda_;
-  position_filter_setup_params->jump_threshold = jump_filter_jump_threshold_;
-  position_filter_setup_params->recovery_initial = jump_filter_recovery_initial_ / double(fps_);
-  position_filter_setup_params->recovery_increase = jump_filter_recovery_increase_ / double(fps_ * fps_);
-  position_filter_.init(position_filter_params);
-  position_filter_.setup(position_filter_setup_params);
-
   // Prepare positional tracking data
   sl::Pose camera_pose;
   sl::POSITIONAL_TRACKING_STATE tracking_state;
 
-  // Prepare image sampling data
+  // Prepare RGB sampling data
   sl::Resolution camera_res = zed_.getCameraInformation().camera_configuration.resolution;
-  sl::Resolution sd_res(sd_resolution_[0], sd_resolution_[1]);
+  sl::Resolution sd_res(video_sd_resolution_[0], video_sd_resolution_[1]);
   sl::Mat left_frame(camera_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
   sl::Mat right_frame(camera_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
   sl::Mat left_frame_sd(sd_res, sl::MAT_TYPE::U8_C4, sl::MEM::CPU);
@@ -125,7 +89,7 @@ void ZEDDriverNode::camera_routine()
     this);
 
   // Spawn sensors processing thread (see zed_driver_sensors.cpp for more information)
-  if (physical_camera_) {
+  if (physical_camera_ && (imu_sampling_time_ > -1)) {
     sensors_thread_ = std::thread(
       &ZEDDriverNode::sensors_routine,
       this);
@@ -183,6 +147,8 @@ void ZEDDriverNode::camera_routine()
       (depth_rate_ == 0) ||
       (depth_rate_ >= fps_)))
     {
+      sem_wait(&depth_sem_1_);
+
       // Get depth data and post it for processing
       err = zed_.retrieveImage(depth_map_view_, sl::VIEW::DEPTH, sl::MEM::CPU, depth_res);
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -202,14 +168,13 @@ void ZEDDriverNode::camera_routine()
         sem_post(&depth_sem_1_);
         continue;
       }
-
-      sem_wait(&depth_sem_1_);
       last_depth_ts_ = curr_ts;
+
       sem_post(&depth_sem_2_);
     }
 
     // Get positional tracking data
-    if (enable_tracking_) {
+    if (tracking_enable_) {
       tracking_state = zed_.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
       if (verbose_) {
         switch (tracking_state) {
@@ -219,8 +184,11 @@ void ZEDDriverNode::camera_routine()
           case sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW:
             RCLCPP_ERROR(this->get_logger(), "FPS too low");
             break;
-          case sl::POSITIONAL_TRACKING_STATE::SEARCHING:
-            RCLCPP_WARN(this->get_logger(), "Track lost, relocalizing...");
+          case sl::POSITIONAL_TRACKING_STATE::SEARCHING_FLOOR_PLANE:
+            RCLCPP_INFO(this->get_logger(), "Searching floor plane");
+            break;
+          case sl::POSITIONAL_TRACKING_STATE::UNAVAILABLE:
+            RCLCPP_ERROR(this->get_logger(), "Positional tracking unavailable");
             break;
           default:
             break;
@@ -245,7 +213,7 @@ void ZEDDriverNode::camera_routine()
   RCLCPP_INFO(this->get_logger(), "RGB processing thread joined");
 
   // Join sensors processing thread
-  if (physical_camera_) {
+  if (physical_camera_ && (imu_sampling_time_ > -1)) {
     sensors_thread_.join();
     RCLCPP_INFO(this->get_logger(), "Sensors processing thread joined");
   }
@@ -266,15 +234,6 @@ void ZEDDriverNode::camera_routine()
 
   // Close camera
   close_camera();
-
-  // Finalize IMU filters
-  for (int i = 0; i < 3; i++) {
-    gyro_filters_[i].fini();
-    accel_filters_[i].fini();
-  }
-
-  // Finalize position filter
-  position_filter_.fini();
 }
 
 } // namespace zed_drivers

@@ -36,7 +36,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
 {
   // Parse pose data
   Header pose_header{};
-  pose_header.set__frame_id(camera_odom_frame_);
+  pose_header.set__frame_id(camera_local_frame_);
   pose_header.stamp.set__sec(
     static_cast<int32_t>(camera_pose.timestamp.getSeconds()));
   pose_header.stamp.set__nanosec(
@@ -73,8 +73,8 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
     while (true) {
       try {
         odom_to_camera_odom = tf_buffer_->lookupTransform(
-          odom_frame_,
-          camera_odom_frame_,
+          local_frame_,
+          camera_local_frame_,
           tf_time,
           tf2::durationFromSec(0.1));
         break;
@@ -110,13 +110,8 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
       camera_odom_rp_covariance.transpose() * pose_covariance_in_map * camera_odom_rp_covariance;
   }
 
-  // Filter position (smooths out jumps due to loop closures/relocalizations)
-  bool jump_filtering = jump_filter_jump_threshold_ > 0.0;
-  Eigen::Vector3d position_filtered = jump_filtering ?
-    Eigen::Vector3d(position_filter_.evolve(position)) : position;
-
-  PoseKit::Pose zed_pose(
-    position_filtered,
+  pose_kit::Pose zed_pose(
+    position,
     orientation,
     pose_header,
     pose_covariance);
@@ -137,7 +132,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   for (size_t i = 0; i < 36; i++) {
     twist_covariance[i] = static_cast<double>(camera_pose.twist_covariance[i]);
   }
-  PoseKit::KinematicPose zed_twist(
+  pose_kit::KinematicPose zed_twist(
     Eigen::Vector3d::Zero(),
     Eigen::Quaterniond::Identity(),
     linear_velocity,
@@ -152,7 +147,7 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   while (true) {
     try {
       base_link_to_camera = tf_buffer_->lookupTransform(
-        link_namespace_ + base_link_name_,
+        frame_prefix_ + base_link_name_,
         camera_frame_,
         tf_time,
         tf2::durationFromSec(0.1));
@@ -170,11 +165,11 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   }
 
   // Get base_link pose
-  PoseKit::Pose base_link_pose = zed_pose;
-  base_link_pose.rigid_transform(base_link_to_camera, odom_frame_);
+  pose_kit::Pose base_link_pose = zed_pose;
+  base_link_pose.rigid_transform(base_link_to_camera, local_frame_);
 
   // Get base_link twist
-  PoseKit::KinematicPose base_link_twist = zed_twist;
+  pose_kit::KinematicPose base_link_twist = zed_twist;
   base_link_twist.rigid_transform(base_link_to_camera);
 
   // Build odometry messages
@@ -184,28 +179,24 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
   camera_odom_msg.set__pose(zed_pose.to_pose_with_covariance_stamped().pose);
   camera_odom_msg.set__twist(zed_twist.to_twist_with_covariance_stamped().twist);
   base_link_odom_msg.set__header(base_link_pose.get_header());
-  base_link_odom_msg.set__child_frame_id(link_namespace_ + base_link_name_);
+  base_link_odom_msg.set__child_frame_id(frame_prefix_ + base_link_name_);
   base_link_odom_msg.set__pose(base_link_pose.to_pose_with_covariance_stamped().pose);
   base_link_odom_msg.set__twist(base_link_twist.to_twist_with_covariance_stamped().twist);
 
   // Publish odometry messages
   base_link_odom_pub_->publish(base_link_odom_msg);
   camera_odom_pub_->publish(camera_odom_msg);
-  rviz_base_link_odom_pub_->publish(base_link_odom_msg);
-  rviz_camera_odom_pub_->publish(camera_odom_msg);
 
   // Publish pose messages
   base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
   camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
-  rviz_base_link_pose_pub_->publish(base_link_pose.to_pose_with_covariance_stamped());
-  rviz_camera_pose_pub_->publish(zed_pose.to_pose_with_covariance_stamped());
 
-  // Publish odom -> base_link transform
+  // Publish local_frame -> base_link transform
   if (publish_tf_) {
-    TransformStamped odom_to_base_link = tf2::eigenToTransform(base_link_pose.get_isometry());
-    odom_to_base_link.set__header(base_link_pose.get_header());
-    odom_to_base_link.set__child_frame_id(link_namespace_ + base_link_name_);
-    tf_broadcaster_->sendTransform(odom_to_base_link);
+    TransformStamped local_frame_to_base_link = tf2::eigenToTransform(base_link_pose.get_isometry());
+    local_frame_to_base_link.set__header(base_link_pose.get_header());
+    local_frame_to_base_link.set__child_frame_id(frame_prefix_ + base_link_name_);
+    tf_broadcaster_->sendTransform(local_frame_to_base_link);
   }
 }
 

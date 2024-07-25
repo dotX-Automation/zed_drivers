@@ -44,10 +44,8 @@ find_package(ament_cmake REQUIRED)
 find_package(camera_info_manager REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(dua_app_management REQUIRED)
-find_package(dua_interfaces REQUIRED)
 find_package(dua_node REQUIRED)
-find_package(dua_qos REQUIRED)
-find_package(dynamic_systems REQUIRED)
+find_package(dua_qos_cpp REQUIRED)
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
@@ -65,7 +63,6 @@ find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Threads REQUIRED)
 find_package(theora_wrappers REQUIRED)
-find_package(visualization_msgs REQUIRED)
 find_package(ZED 4 REQUIRED)
 
 # Generate parameters source code
@@ -100,11 +97,8 @@ target_link_libraries(zed_driver
   Threads::Threads)
 ament_target_dependencies(zed_driver
   camera_info_manager
-  dua_app_management
-  dua_interfaces
   dua_node
-  dua_qos
-  dynamic_systems
+  dua_qos_cpp
   geometry_msgs
   image_transport
   nav_msgs
@@ -118,8 +112,7 @@ ament_target_dependencies(zed_driver
   theora_wrappers
   tf2
   tf2_eigen
-  tf2_ros
-  visualization_msgs)
+  tf2_ros)
 rclcpp_components_register_nodes(zed_driver "zed_drivers::ZEDDriverNode")
 
 # ZED Driver standalone application

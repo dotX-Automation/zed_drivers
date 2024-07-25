@@ -33,7 +33,9 @@ namespace zed_drivers
 void ZEDDriverNode::rgb_routine()
 {
   rclcpp::Duration video_period(
-    std::chrono::nanoseconds(int(1.0 / double(video_rate_ > 0 ? video_rate_ : fps_) * 1e9)));
+    std::chrono::nanoseconds(
+      int(1.0 /
+      double(video_stream_rate_ > 0 ? video_stream_rate_ : fps_) * 1e9)));
   rclcpp::Time last_video_ts = system_clock_.now();
 
   RCLCPP_INFO(this->get_logger(), "RGB processing thread started");
@@ -107,21 +109,21 @@ void ZEDDriverNode::rgb_routine()
     left_rect_pub_->publish(*left_frame_msg);
     right_info_pub_->publish(right_info_);
     right_rect_pub_->publish(*right_frame_msg);
-    if (stream_hd_) {
+    if (video_stream_hd_) {
       left_stream_pub_->publish(*left_frame_msg);
       right_stream_pub_->publish(*right_frame_msg);
     }
 
     // Publish images and camera_infos (left, right, SD streams)
     if (((curr_rgb_ts_ - last_video_ts) >= video_period) ||
-      (video_rate_ == 0) ||
-      (video_rate_ >= fps_))
+      (video_stream_rate_ == 0) ||
+      (video_stream_rate_ >= fps_))
     {
       left_sd_info_pub_->publish(left_sd_info_);
       left_rect_sd_pub_->publish(*left_frame_msg_sd);
       right_sd_info_pub_->publish(right_sd_info_);
       right_rect_sd_pub_->publish(*right_frame_msg_sd);
-      if (!stream_hd_) {
+      if (!video_stream_hd_) {
         left_stream_pub_->publish(*left_frame_msg_sd);
         right_stream_pub_->publish(*right_frame_msg_sd);
       }

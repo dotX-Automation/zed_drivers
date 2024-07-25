@@ -56,7 +56,7 @@
 #include <pose_kit/kinematic_pose.hpp>
 
 #include <dua_node/dua_node.hpp>
-#include <dua_qos/dua_qos.hpp>
+#include <dua_qos_cpp/dua_qos.hpp>
 
 #include <camera_info_manager/camera_info_manager.hpp>
 #include <image_transport/image_transport.hpp>
@@ -69,13 +69,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
-#include <dynamic_systems/control/lti.hpp>
-#include <dynamic_systems/control/utils.hpp>
-#include <dynamic_systems/filters/jump_filter.hpp>
-
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
-#include <dua_interfaces/msg/point_cloud2_with_roi.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -84,17 +79,13 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/header.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
 
 #include <std_srvs/srv/set_bool.hpp>
 
-using namespace dua_interfaces::msg;
 using namespace geometry_msgs::msg;
 using namespace nav_msgs::msg;
 using namespace sensor_msgs::msg;
 using namespace std_msgs::msg;
-using namespace visualization_msgs::msg;
 
 using namespace std_srvs::srv;
 
@@ -104,7 +95,7 @@ namespace zed_drivers
 /**
  * Drives a ZED camera.
  */
-class ZEDDriverNode : public DUANode::NodeBase
+class ZEDDriverNode : public dua_node::NodeBase
 {
 public:
   ZEDDriverNode(const rclcpp::NodeOptions & opts = rclcpp::NodeOptions());
@@ -120,7 +111,7 @@ private:
   /* TF listeners, broadcaster, and related data. */
   std::string camera_name_;
   std::string camera_frame_;
-  std::string camera_odom_frame_;
+  std::string camera_local_frame_;
   std::string camera_left_frame_;
   std::string camera_right_frame_;
   std::string camera_imu_frame_;
@@ -134,16 +125,7 @@ private:
   rclcpp::Publisher<Odometry>::SharedPtr camera_odom_pub_;
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr camera_pose_pub_;
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
-  rclcpp::Publisher<Imu>::SharedPtr imu_filtered_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
-  rclcpp::Publisher<PointCloud2WithROI>::SharedPtr point_cloud_roi_pub_;
-  rclcpp::Publisher<Odometry>::SharedPtr rviz_base_link_odom_pub_;
-  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_base_link_pose_pub_;
-  rclcpp::Publisher<Odometry>::SharedPtr rviz_camera_odom_pub_;
-  rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr rviz_camera_pose_pub_;
-  rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_pub_;
-  rclcpp::Publisher<PointCloud2>::SharedPtr rviz_point_cloud_roi_pub_;
-  rclcpp::Publisher<MarkerArray>::SharedPtr rviz_roi_pub_;
 
   /* image_transport, camera_info publishers. */
   std::shared_ptr<image_transport::Publisher> left_rect_pub_;
@@ -205,13 +187,6 @@ private:
   bool imu_filters_settling_time_elapsed_ = false;
   void sensors_routine();
 
-  /* Position filters and data. */
-  DynamicSystems::Filters::JumpFilterSystem position_filter_;
-
-  /* IMU filters and data. */
-  std::array<DynamicSystems::Control::LTISystem, 3> gyro_filters_;
-  std::array<DynamicSystems::Control::LTISystem, 3> accel_filters_;
-
   /* Node parameters. */
   bool autostart_;
   std::string base_link_name_ = "";
@@ -219,41 +194,30 @@ private:
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;
   std::vector<int64_t> depth_resolution_ = {0, 0};
-  bool enable_tracking_ = false;
   int fps_ = 15;
-  double imu_filters_sampling_time_ = 0.0;
-  double imu_filters_settling_time_ = 0.0;
-  int64_t imu_filters_zoh_steps_ = 0;
-  int64_t imu_filters_order_ = 0;
+  std::string frame_prefix_ = "";
   int64_t imu_sampling_time_ = 0;
-  std::vector<double> imu_filters_low_freqs_ = {0.0, 0.0};
-  std::vector<double> imu_filters_high_freqs_ = {0.0, 0.0};
-  double jump_filter_update_lambda_ = 0.0;
-  double jump_filter_jump_threshold_ = 0.0;
-  double jump_filter_recovery_initial_ = 0.0;
-  double jump_filter_recovery_increase_ = 0.0;
-  std::string link_namespace_ = "";
-  std::string odom_frame_ = "";
+  std::string local_frame_ = "";
   bool publish_tf_ = false;
   std::string record_path_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
-  std::vector<double> roi_box_sizes_;
-  std::vector<int64_t> sd_resolution_ = {0, 0};
-  bool stream_hd_ = false;
   sl::STREAMING_CODEC streaming_codec_ = sl::STREAMING_CODEC::H264;
   sl::SVO_COMPRESSION_MODE svo_compression = sl::SVO_COMPRESSION_MODE::H264;
   int64_t texture_confidence_ = 100;
+  bool tracking_enable_ = false;
   bool tracking_set_gravity_as_origin_ = false;
+  std::vector<int64_t> video_sd_resolution_ = {0, 0};
+  bool video_stream_hd_ = false;
+  int64_t video_stream_rate_ = 0;
   bool verbose_ = false;
-  int64_t video_rate_ = 0;
 
   /* Node parameters validators. */
   bool validate_depth_mode(const rclcpp::Parameter & p);
-  bool validate_enable_tracking(const rclcpp::Parameter & p);
   bool validate_fps(const rclcpp::Parameter & p);
   bool validate_resolution(const rclcpp::Parameter & p);
   bool validate_streaming_codec(const rclcpp::Parameter & p);
   bool validate_svo_compression(const rclcpp::Parameter & p);
+  bool validate_tracking_enable(const rclcpp::Parameter & p);
 
   /* Auxiliary routines. */
   bool open_camera();

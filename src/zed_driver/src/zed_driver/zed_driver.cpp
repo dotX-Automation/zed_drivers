@@ -40,15 +40,6 @@ ZEDDriverNode::ZEDDriverNode(const rclcpp::NodeOptions & opts)
   init_services();
   init_tf2();
 
-  // Initialize Eigen library
-  int64_t eigen_cores = this->get_parameter("eigen_max_cores").as_int();
-  if (eigen_cores > 0) {
-    Eigen::setNbThreads(eigen_cores);
-    if (verbose_) {
-      std::cout << "Eigen::nbThreads(): " << Eigen::nbThreads() << std::endl;
-    }
-  }
-
   RCLCPP_INFO(this->get_logger(), "Node initialized");
 
   // Start camera sampling thread, if requested
@@ -102,151 +93,106 @@ ZEDDriverNode::~ZEDDriverNode()
  */
 void ZEDDriverNode::init_publishers()
 {
-  bool sd_reliable = this->get_parameter("sd_reliable").as_bool();
+  bool video_sd_reliable = this->get_parameter("video_sd_reliable").as_bool();
 
   // base_link_odometry
   base_link_odom_pub_ = this->create_publisher<Odometry>(
     "~/base_link_odometry",
-    DUAQoS::get_datum_qos(5));
+    dua_qos::Reliable::get_datum_qos());
 
   // base_link_pose
   base_link_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
     "~/base_link_pose",
-    DUAQoS::get_datum_qos(5));
+    dua_qos::Reliable::get_datum_qos());
 
   // camera_odometry
   camera_odom_pub_ = this->create_publisher<Odometry>(
     "~/camera_odometry",
-    DUAQoS::get_datum_qos(5));
+    dua_qos::Reliable::get_datum_qos());
 
   // camera_pose
   camera_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
     "~/camera_pose",
-    DUAQoS::get_datum_qos(5));
+    dua_qos::Reliable::get_datum_qos());
 
   // imu
   imu_pub_ = this->create_publisher<Imu>(
     "~/imu",
-    DUAQoS::get_datum_qos(5));
-
-  // imu_filtered
-  imu_filtered_pub_ = this->create_publisher<Imu>(
-    "~/imu_filtered",
-    DUAQoS::get_datum_qos(5));
+    dua_qos::Reliable::get_datum_qos());
 
   // point_cloud
   point_cloud_pub_ = this->create_publisher<PointCloud2>(
     "~/point_cloud",
-    DUAQoS::get_scan_qos(1));
-
-  // point_cloud_roi
-  point_cloud_roi_pub_ = this->create_publisher<PointCloud2WithROI>(
-    "~/point_cloud_roi",
-    DUAQoS::get_datum_qos(1));
-
-  // rviz/base_link_odom
-  rviz_base_link_odom_pub_ = this->create_publisher<Odometry>(
-    "~/rviz/base_link_odom",
-    DUAQoS::Visualization::get_datum_qos(5));
-
-  // rviz/base_link_pose
-  rviz_base_link_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
-    "~/rviz/base_link_pose",
-    DUAQoS::Visualization::get_datum_qos(5));
-
-  // rviz/camera_odometry
-  rviz_camera_odom_pub_ = this->create_publisher<Odometry>(
-    "~/rviz/camera_odometry",
-    DUAQoS::Visualization::get_datum_qos(5));
-
-  // rviz/camera_pose
-  rviz_camera_pose_pub_ = this->create_publisher<PoseWithCovarianceStamped>(
-    "~/rviz/camera_pose",
-    DUAQoS::Visualization::get_datum_qos(5));
-
-  // rviz/point_cloud
-  rviz_point_cloud_pub_ = this->create_publisher<PointCloud2>(
-    "~/rviz/point_cloud",
-    DUAQoS::Visualization::get_scan_qos(1));
-
-  // rviz/point_cloud_roi
-  rviz_point_cloud_roi_pub_ = this->create_publisher<PointCloud2>(
-    "~/rviz/point_cloud_roi",
-    DUAQoS::Visualization::get_scan_qos(1));
-
-  // rviz/roi
-  rviz_roi_pub_ = this->create_publisher<MarkerArray>(
-    "~/rviz/roi",
-    DUAQoS::Visualization::get_datum_qos(1));
+    dua_qos::Reliable::get_scan_qos());
 
   // left/camera_info
   left_info_pub_ = this->create_publisher<CameraInfo>(
     "~/left/camera_info",
-    DUAQoS::get_datum_qos(1));
+    dua_qos::Reliable::get_datum_qos());
 
   // left/image_rect_color
   left_rect_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/left/image_rect_color",
-      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+      dua_qos::Reliable::get_image_qos().get_rmw_qos_profile()));
 
   // left/sd/camera_info
   left_sd_info_pub_ = this->create_publisher<CameraInfo>(
     "~/left/sd/camera_info",
-    sd_reliable ? DUAQoS::get_datum_qos() : DUAQoS::Visualization::get_datum_qos(1));
+    video_sd_reliable ? dua_qos::Reliable::get_datum_qos() : dua_qos::BestEffort::get_datum_qos());
 
   // left/sd/image_rect_color
   left_rect_sd_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/left/sd/image_rect_color",
-      sd_reliable ? DUAQoS::get_image_qos().get_rmw_qos_profile() :
-      DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
+      video_sd_reliable ? dua_qos::Reliable::get_image_qos().get_rmw_qos_profile() :
+      dua_qos::BestEffort::get_image_qos().get_rmw_qos_profile()));
 
   // right/camera_info
   right_info_pub_ = this->create_publisher<CameraInfo>(
     "~/right/camera_info",
-    DUAQoS::get_datum_qos(1));
+    dua_qos::Reliable::get_datum_qos());
 
   // right/image_rect_color
   right_rect_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/right/image_rect_color",
-      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+      dua_qos::Reliable::get_image_qos().get_rmw_qos_profile()));
 
   // right/sd/camera_info
   right_sd_info_pub_ = this->create_publisher<CameraInfo>(
     "~/right/sd/camera_info",
-    sd_reliable ? DUAQoS::get_datum_qos() : DUAQoS::Visualization::get_datum_qos(1));
+    video_sd_reliable ? dua_qos::Reliable::get_datum_qos() : dua_qos::BestEffort::get_datum_qos());
 
   // right/sd/image_rect_color
   right_rect_sd_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/right/sd/image_rect_color",
-      sd_reliable ? DUAQoS::get_image_qos().get_rmw_qos_profile() :
-      DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile()));
+      video_sd_reliable ? dua_qos::Reliable::get_image_qos().get_rmw_qos_profile() :
+      dua_qos::BestEffort::get_image_qos().get_rmw_qos_profile()));
 
   // left stream
   left_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
     "~/left/image_rect_color",
-    DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile());
+    dua_qos::BestEffort::get_image_qos().get_rmw_qos_profile());
 
   // right stream
   right_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
     "~/right/image_rect_color",
-    DUAQoS::Visualization::get_image_qos().get_rmw_qos_profile());
+    dua_qos::BestEffort::get_image_qos().get_rmw_qos_profile());
 
   // depth
   depth_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
       "~/depth",
-      DUAQoS::get_image_qos().get_rmw_qos_profile()));
+      dua_qos::Reliable::get_image_qos().get_rmw_qos_profile()));
 }
 
 /**

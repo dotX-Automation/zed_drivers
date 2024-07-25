@@ -106,9 +106,9 @@ bool ZEDDriverNode::open_camera()
       if (verbose_) {
         std::cout << "ZED " << id << std::endl; //" (" << zed_path << ")" << std::endl;
         std::cout << " - Serial number: " << serial << std::endl;
-      //  std::cout << " - Model: " << model << std::endl;
-      //  std::cout << " - Input type: " << input_type << std::endl;
-      //  std::cout << " - State: " << state << std::endl << std::endl;
+        //  std::cout << " - Model: " << model << std::endl;
+        //  std::cout << " - Input type: " << input_type << std::endl;
+        //  std::cout << " - State: " << state << std::endl << std::endl;
       }
 
       if (serial == static_cast<unsigned int>(serial_number)) {
@@ -173,7 +173,8 @@ bool ZEDDriverNode::open_camera()
   // Enable streaming as sender
   if (!streaming_codec.empty()) {
     sl::StreamingParameters stream_params;
-    stream_params.adaptative_bitrate = this->get_parameter("streaming_adaptative_bitrate").as_bool();
+    stream_params.adaptative_bitrate =
+      this->get_parameter("streaming_adaptative_bitrate").as_bool();
     stream_params.bitrate = this->get_parameter("streaming_bitrate").as_int();
     stream_params.chunk_size = this->get_parameter("streaming_chunk_size").as_int();
     stream_params.codec = streaming_codec_; // This must be validated
@@ -217,7 +218,7 @@ bool ZEDDriverNode::open_camera()
   }
 
   // Enable positional tracking
-  if (enable_tracking_) {
+  if (tracking_enable_) {
     sl::PositionalTrackingParameters tracking_params;
     tracking_params.enable_area_memory =
       this->get_parameter("tracking_enable_area_memory").as_bool();
@@ -248,8 +249,8 @@ bool ZEDDriverNode::open_camera()
   sl::CameraInformation zed_info = zed_.getCameraInformation();
   sl::CameraInformation zed_info_sd = zed_.getCameraInformation(
     sl::Resolution(
-      sd_resolution_[0],
-      sd_resolution_[1]));
+      video_sd_resolution_[0],
+      video_sd_resolution_[1]));
   sl::CameraParameters left_info = zed_info.camera_configuration.calibration_parameters.left_cam;
   sl::CameraParameters left_sd_info =
     zed_info_sd.camera_configuration.calibration_parameters.left_cam;
@@ -278,11 +279,11 @@ bool ZEDDriverNode::open_camera()
       "Camera model %d might not be supported",
       static_cast<int>(camera_model_));
   }
-  camera_frame_ = link_namespace_ + camera_name_ + "_link";
-  camera_odom_frame_ = link_namespace_ + camera_name_ + "_odom";
-  camera_left_frame_ = link_namespace_ + camera_name_ + "_left_link";
-  camera_right_frame_ = link_namespace_ + camera_name_ + "_right_link";
-  camera_imu_frame_ = link_namespace_ + camera_name_ + "_imu_link";
+  camera_frame_ = frame_prefix_ + camera_name_ + "_link";
+  camera_local_frame_ = frame_prefix_ + camera_name_ + "_odom";
+  camera_left_frame_ = frame_prefix_ + camera_name_ + "_left_link";
+  camera_right_frame_ = frame_prefix_ + camera_name_ + "_right_link";
+  camera_imu_frame_ = frame_prefix_ + camera_name_ + "_imu_link";
 
   // Initialize camera_infos
   init_camera_info(
@@ -453,6 +454,8 @@ bool ZEDDriverNode::validate_depth_mode(const rclcpp::Parameter & p)
     depth_mode_ = sl::DEPTH_MODE::ULTRA;
   } else if (depth_mode == "NEURAL") {
     depth_mode_ = sl::DEPTH_MODE::NEURAL;
+  } else if (depth_mode == "NEURAL_PLUS") {
+    depth_mode_ = sl::DEPTH_MODE::NEURAL_PLUS;
   } else if (depth_mode == "NONE") {
     depth_mode_ = sl::DEPTH_MODE::NONE;
   } else {
@@ -466,21 +469,21 @@ bool ZEDDriverNode::validate_depth_mode(const rclcpp::Parameter & p)
 }
 
 /**
- * @brief Validates the enable_tracking parameter.
+ * @brief Validates the tracking_enable parameter.
  *
  * @param p Parameter to validate.
  * @return True if the parameter is valid, false otherwise.
  */
-bool ZEDDriverNode::validate_enable_tracking(const rclcpp::Parameter & p)
+bool ZEDDriverNode::validate_tracking_enable(const rclcpp::Parameter & p)
 {
   if (running_.load(std::memory_order_acquire)) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "ZEDDriverNode::validate_enable_tracking: Cannot change enable_tracking while the camera is active");
+      "ZEDDriverNode::validate_tracking_enable: Cannot change tracking_enable while the camera is active");
     return false;
   }
 
-  enable_tracking_ = p.as_bool();
+  tracking_enable_ = p.as_bool();
   return true;
 }
 

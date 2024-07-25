@@ -99,24 +99,6 @@ params:
     constraints: "Changes require camera restart, must be a valid depth stabilization value for the ZED camera"
     read_only: false
 
-  eigen_max_cores:
-    type: integer
-    default_value: 4
-    min_value: 0
-    max_value: 16
-    step: 1
-    description: "Maximum number of cores to use for Eigen library"
-    constraints: "Changes require full restart, 0 means no change, must be a valid number of cores depending on the system, pay attention to set this to the same amount if you load this node with others that do the same"
-    read_only: true
-
-  enable_tracking:
-    type: bool
-    default_value: false
-    description: "Enables tracking module"
-    constraints: "Can only be changed while the camera is not active"
-    read_only: false
-    validator: validate_enable_tracking
-
   fps:
     type: integer
     default_value: 30
@@ -128,145 +110,32 @@ params:
     read_only: false
     validator: validate_fps
 
-  imu_filters_sampling_time:
-    type: double
-    default_value: 0.033333
-    min_value: 0.001
-    max_value: 1.0
-    step: 0.0
-    description: "IMU filters sampling time [s]"
-    constraints: "Changes require camera restart."
-    read_only: false
-    var_name: imu_filters_sampling_time_
-
-  imu_filters_settling_time:
-    type: double
-    default_value: 5.0
-    min_value: 0.0
-    max_value: 1000.0
-    step: 0.0
-    description: "IMU filters settling time [s]"
-    constraints: "Changes require camera restart, 0.0 disables the timer"
-    read_only: false
-
-  imu_filters_zoh_steps:
-    type: integer
-    default_value: 1000
-    min_value: 2
-    max_value: 1000000
-    step: 1
-    description: "IMU filters ZOH integral steps"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: imu_filters_zoh_steps_
-
-  imu_filters_order:
-    type: integer
-    default_value: 2
-    min_value: 1
-    max_value: 10
-    step: 1
-    description: "IMU filters order"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: imu_filters_order_
-
-  imu_filters_low_freqs:
-    type: double_array
-    default_value:
-      - 0.5
-      - 0.5
-    min_value: 0.0
-    max_value: 1000.0
-    step: 0.0
-    description: "IMU filters low frequencies [Hz]"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: imu_filters_low_freqs_
-
-  imu_filters_high_freqs:
-    type: double_array
-    default_value:
-      - 10.0
-      - 10.0
-    min_value: 0.0
-    max_value: 1000.0
-    step: 0.0
-    description: "IMU filters high frequencies [Hz]"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: imu_filters_high_freqs_
+  frame_prefix:
+    type: string
+    default_value: ""
+    description: "Frame prefix for the camera link, including the last trailing slash"
+    constraints: "Must be a valid frame prefix."
+    read_only: true
+    var_name: frame_prefix_
 
   imu_sampling_time:
     type: integer
     default_value: 2500
-    min_value: 0
+    min_value: -1
     max_value: 1000000
     step: 1
     description: "IMU sampling time [us]"
     constraints: "Default is ZED IMU rate (400 Hz), 0 means no rate synchronization, might have to account for processing and ROS operations"
-    read_only: false
+    read_only: true
     var_name: imu_sampling_time_
 
-  jump_filter_update_lambda:
-    type: double
-    default_value: 0.9
-    min_value: 0.0
-    max_value: 1.0
-    step: 0.0
-    description: "Jump filter history weight"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: jump_filter_update_lambda_
-
-  jump_filter_jump_threshold:
-    type: double
-    default_value: 0.0
-    min_value: 0.0
-    max_value: 1000000.0
-    step: 0.0
-    description: "Jump filter jump detection threshold [m/s]"
-    constraints: "Changes require camera restart, 0.0 disables the filter"
-    read_only: false
-    var_name: jump_filter_jump_threshold_
-
-  jump_filter_recovery_initial:
-    type: double
-    default_value: 0.0
-    min_value: 0.0
-    max_value: 1000000.0
-    step: 0.0
-    description: "Jump filter initial recovery rate [m/s]"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: jump_filter_recovery_initial_
-
-  jump_filter_recovery_increase:
-    type: double
-    default_value: 0.0
-    min_value: 0.0
-    max_value: 1000000.0
-    step: 0.0
-    description: "Jump filter recovery rate increment rate [m/s^2]"
-    constraints: "Changes require camera restart"
-    read_only: false
-    var_name: jump_filter_recovery_increase_
-
-  link_namespace:
-    type: string
-    default_value: ""
-    description: "Namespace for the zedm link, including the last trailing slash"
-    constraints: "Must be a valid link namespace."
-    read_only: true
-    var_name: link_namespace_
-
-  odometry_frame:
+  local_frame:
     type: string
     default_value: odom
-    description: "Full frame id of the robot's odometry frame"
+    description: "Full frame id of the robot's local frame"
     constraints: ""
     read_only: true
-    var_name: odom_frame_
+    var_name: local_frame_
 
   publish_tf:
     type: bool
@@ -292,40 +161,6 @@ params:
     read_only: false
     validator: validate_resolution
 
-  roi_box_sizes:
-    type: double_array
-    default_value:
-      - 2.0
-      - 3.0
-      - 2.0
-    min_value: 0.0
-    max_value: 20.0
-    step: 0.0
-    description: "Point clouds ROI box sizes (X, Y, Z) [m]"
-    constraints: "Sizes are intended in NWU frame originating at the bottom right corner of the box"
-    read_only: false
-    var_name: roi_box_sizes_
-
-  sd_reliable:
-    type: bool
-    default_value: false
-    description: "Enables SD image topics reliable or best effort QoS."
-    constraints: ""
-    read_only: true
-
-  sd_resolution:
-    type: integer_array
-    default_value:
-      - 768
-      - 432
-    min_value: 0
-    max_value: 1920
-    step: 1
-    description: "SD image resolution (width, height)"
-    constraints: "Changes require camera restart, must be a valid SD image resolution for the ZED camera"
-    read_only: false
-    var_name: sd_resolution_
-
   serial_number:
     type: integer
     default_value: -1
@@ -335,14 +170,6 @@ params:
     description: "Serial number of the camera to open"
     constraints: "Must be a valid serial number, or -1 to open the first available camera"
     read_only: false
-
-  stream_hd:
-    type: bool
-    default_value: true
-    description: "Enables HD image streaming"
-    constraints: "Changes might require stream restart if artifacts are present"
-    read_only: false
-    var_name: stream_hd_
 
   streaming_adaptative_bitrate:
     type: bool
@@ -466,6 +293,14 @@ params:
     constraints: "Changes require camera restart, -1.0 disables this feature"
     read_only: false
 
+  tracking_enable:
+    type: bool
+    default_value: false
+    description: "Enables tracking module"
+    constraints: "Can only be changed while the camera is not active"
+    read_only: false
+    validator: validate_tracking_enable
+
   tracking_enable_area_memory:
     type: bool
     default_value: true
@@ -503,7 +338,35 @@ params:
     read_only: false
     var_name: verbose_
 
-  video_rate:
+  video_sd_reliable:
+    type: bool
+    default_value: false
+    description: "Enables SD image topics reliable or best effort QoS."
+    constraints: ""
+    read_only: true
+
+  video_sd_resolution:
+    type: integer_array
+    default_value:
+      - 768
+      - 432
+    min_value: 0
+    max_value: 1920
+    step: 1
+    description: "SD image resolution (width, height)"
+    constraints: "Changes require camera restart, must be a valid SD image resolution for the ZED camera"
+    read_only: false
+    var_name: video_sd_resolution_
+
+  video_stream_hd:
+    type: bool
+    default_value: true
+    description: "Enables HD image streaming"
+    constraints: "Changes might require stream restart if artifacts are present"
+    read_only: false
+    var_name: video_stream_hd_
+
+  video_stream_rate:
     type: integer
     default_value: 0
     min_value: 0
@@ -512,4 +375,4 @@ params:
     description: "Video streams publishing rate (for undersampling)"
     constraints: "Changes require camera restart, 0 or >fps mean no undersampling"
     read_only: false
-    var_name: video_rate_
+    var_name: video_stream_rate_

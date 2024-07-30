@@ -145,14 +145,6 @@ params:
     read_only: false
     var_name: publish_tf_
 
-  record_path:
-    type: string
-    default_value: ""
-    description: "Path to the folder where to save video frames"
-    constraints: "Must be a valid path, if empty no recording will be done"
-    read_only: false
-    var_name: record_path_
-
   resolution:
     type: string
     default_value: HD720
@@ -376,3 +368,11 @@ params:
     constraints: "Changes require camera restart, 0 or >fps mean no undersampling"
     read_only: false
     var_name: video_stream_rate_
+
+  video_stream_record_path:
+    type: string
+    default_value: ""
+    description: "Path to the folder where to save video frames"
+    constraints: "Must be a valid path, if empty no recording will be done"
+    read_only: false
+    var_name: video_stream_record_path_

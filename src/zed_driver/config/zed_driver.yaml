@@ -46,3 +46,4 @@
       - 360
     video_stream_hd: false
     video_stream_rate: 10
+    video_stream_record_path: ""

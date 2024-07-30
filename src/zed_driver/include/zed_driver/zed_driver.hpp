@@ -199,7 +199,6 @@ private:
   int64_t imu_sampling_time_ = 0;
   std::string local_frame_ = "";
   bool publish_tf_ = false;
-  std::string record_path_ = "";
   sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   sl::STREAMING_CODEC streaming_codec_ = sl::STREAMING_CODEC::H264;
   sl::SVO_COMPRESSION_MODE svo_compression = sl::SVO_COMPRESSION_MODE::H264;
@@ -210,6 +209,7 @@ private:
   bool video_stream_hd_ = false;
   int64_t video_stream_rate_ = 0;
   bool verbose_ = false;
+  std::string video_stream_record_path_ = "";
 
   /* Node parameters validators. */
   bool validate_depth_mode(const rclcpp::Parameter & p);

@@ -6,7 +6,7 @@
     confidence: 20
     depth_max_distance: 5.0
     depth_min_distance: 0.5
-    depth_mode: NEURAL
+    depth_mode: ULTRA
     depth_rate: 2
     depth_resolution:
       - 480

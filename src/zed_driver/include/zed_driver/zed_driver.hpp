@@ -30,6 +30,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -135,6 +137,7 @@ private:
   std::shared_ptr<TheoraWrappers::Publisher> left_stream_pub_;
   std::shared_ptr<TheoraWrappers::Publisher> right_stream_pub_;
   std::shared_ptr<image_transport::Publisher> depth_pub_;
+  std::shared_ptr<image_transport::Publisher> depth_distances_pub_;
   rclcpp::Publisher<CameraInfo>::SharedPtr left_info_pub_;
   rclcpp::Publisher<CameraInfo>::SharedPtr right_info_pub_;
   rclcpp::Publisher<CameraInfo>::SharedPtr left_sd_info_pub_;

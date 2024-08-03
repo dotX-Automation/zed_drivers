@@ -77,16 +77,37 @@ void ZEDDriverNode::depth_routine()
     sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
     sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
 
-    // Fill and publish point cloud message
+    // Prepare depth distances message
+    Image depth_distances_msg{};
+    depth_distances_msg.header.set__frame_id(camera_frame_);
+    depth_distances_msg.header.stamp.set__sec(
+      static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
+    depth_distances_msg.header.stamp.set__nanosec(
+      static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
+    depth_distances_msg.set__width(depth_point_cloud_.getWidth());
+    depth_distances_msg.set__height(depth_point_cloud_.getHeight());
+    depth_distances_msg.set__encoding(sensor_msgs::image_encodings::TYPE_64FC1);
+    depth_distances_msg.set__is_bigendian(false);
+    depth_distances_msg.set__step(depth_point_cloud_.getWidth() * sizeof(double));
+    depth_distances_msg.data.resize(
+      depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight() * sizeof(double));
+
+    // Fill and publish point cloud and depth distances messages
     uint32_t valid_points = 0U;
+    double nan = std::numeric_limits<double>::quiet_NaN();
     for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
       for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
         // Extract point position w.r.t. the camera from ZED data
         sl::float4 point3D;
-        if (depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) {
-          continue;
-        }
-        if (std::isnan(point3D.x) || std::isnan(point3D.y) || std::isnan(point3D.z)) {
+        if ((depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) ||
+          ((std::isnan(point3D.x) || std::isnan(point3D.y) || std::isnan(point3D.z))))
+        {
+          memcpy(
+            static_cast<void *>(
+              depth_distances_msg.data.data() + (i * depth_point_cloud_.getWidth() + j) *
+              sizeof(double)),
+            static_cast<void *>(&nan),
+            sizeof(double));
           continue;
         }
         valid_points++;
@@ -97,6 +118,16 @@ void ZEDDriverNode::depth_routine()
         *iter_pc_z = point3D.z;
         *iter_pc_rgba = point3D.w;
 
+        // Fill depth distances message
+        Eigen::Vector3d point(point3D.x, point3D.y, point3D.z);
+        double distance = point.norm();
+        memcpy(
+          static_cast<void *>(
+            depth_distances_msg.data.data() + (i * depth_point_cloud_.getWidth() + j) *
+            sizeof(double)),
+          static_cast<void *>(&distance),
+          sizeof(double));
+
         // Advance iterators
         ++iter_pc_x;
         ++iter_pc_y;
@@ -106,6 +137,7 @@ void ZEDDriverNode::depth_routine()
     }
     pc_modifier.resize(valid_points);
     point_cloud_pub_->publish(pc_msg);
+    depth_distances_pub_->publish(depth_distances_msg);
 
     sem_post(&depth_sem_1_);
   }

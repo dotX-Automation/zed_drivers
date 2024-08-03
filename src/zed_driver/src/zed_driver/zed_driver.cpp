@@ -81,6 +81,8 @@ ZEDDriverNode::~ZEDDriverNode()
   right_stream_pub_.reset();
   depth_pub_->shutdown();
   depth_pub_.reset();
+  depth_distances_pub_->shutdown();
+  depth_distances_pub_.reset();
 
   // Stop TF listeners
   tf_listener_.reset();
@@ -192,6 +194,13 @@ void ZEDDriverNode::init_publishers()
     image_transport::create_publisher(
       this,
       "~/depth",
+      dua_qos::Reliable::get_image_qos().get_rmw_qos_profile()));
+
+  // depth_distances
+  depth_distances_pub_ = std::make_shared<image_transport::Publisher>(
+    image_transport::create_publisher(
+      this,
+      "~/depth_distances",
       dua_qos::Reliable::get_image_qos().get_rmw_qos_profile()));
 }
 

@@ -36,7 +36,7 @@ void ZEDDriverNode::rgb_routine()
     std::chrono::nanoseconds(
       int(1.0 /
       double(video_stream_rate_ > 0 ? video_stream_rate_ : fps_) * 1e9)));
-  rclcpp::Time last_video_ts = system_clock_.now();
+  rclcpp::Time last_video_ts(0L, RCL_SYSTEM_TIME);
 
   RCLCPP_INFO(this->get_logger(), "RGB processing thread started");
 

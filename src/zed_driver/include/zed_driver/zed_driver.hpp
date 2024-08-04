@@ -159,7 +159,6 @@ private:
   camera_info_manager::CameraInfo left_sd_info_{};
   camera_info_manager::CameraInfo right_info_{};
   camera_info_manager::CameraInfo right_sd_info_{};
-  rclcpp::Clock system_clock_ = rclcpp::Clock(RCL_SYSTEM_TIME);
   bool physical_camera_ = false;
 
   /* Camera sampling thread and routine. */
@@ -173,7 +172,6 @@ private:
   sem_t depth_sem_2_;
   sl::Mat depth_map_view_;
   sl::Mat depth_point_cloud_;
-  rclcpp::Time last_depth_ts_;
 
   /* RGB processing thread, routine, and buffers. */
   std::thread rgb_thread_;

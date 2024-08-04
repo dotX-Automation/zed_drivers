@@ -73,10 +73,10 @@ void ZEDDriverNode::camera_routine()
   sl::Resolution depth_res(depth_resolution_[0], depth_resolution_[1]);
 
   // Prepare stopwatches
-  rclcpp::Time curr_ts = this->get_clock()->now();
+  rclcpp::Time curr_ts(0L, RCL_SYSTEM_TIME);
+  rclcpp::Time last_depth_ts(0L, RCL_SYSTEM_TIME);
   rclcpp::Duration depth_period(
     std::chrono::nanoseconds(int(1.0 / double(depth_rate_ > 0 ? depth_rate_ : fps_) * 1e9)));
-  last_depth_ts_ = curr_ts;
 
   // Spawn depth processing thread
   depth_thread_ = std::thread(
@@ -124,8 +124,6 @@ void ZEDDriverNode::camera_routine()
       }
     }
 
-    curr_ts = this->get_clock()->now();
-
     // Get RGB data and post it for processing (this goes on while we do stuff)
     sem_wait(&rgb_sem_1_);
     zed_.retrieveImage(left_frame, sl::VIEW::LEFT, sl::MEM::CPU, camera_res);
@@ -133,6 +131,7 @@ void ZEDDriverNode::camera_routine()
     zed_.retrieveImage(right_frame, sl::VIEW::RIGHT, sl::MEM::CPU, camera_res);
     zed_.retrieveImage(right_frame_sd, sl::VIEW::RIGHT, sl::MEM::CPU, sd_res);
     curr_rgb_ts_ = rclcpp::Time(left_frame.timestamp.getNanoseconds(), RCL_SYSTEM_TIME);
+    curr_ts = curr_rgb_ts_;
     sem_post(&rgb_sem_2_);
 
     // Process and publish depth data iff:
@@ -143,7 +142,7 @@ void ZEDDriverNode::camera_routine()
     if (runtime_params.enable_depth &&
       (depth_mode_ != sl::DEPTH_MODE::NONE) &&
       (depth_rate_ >= 0) &&
-      (((curr_ts - last_depth_ts_) >= depth_period) ||
+      (((curr_ts - last_depth_ts) >= depth_period) ||
       (depth_rate_ == 0) ||
       (depth_rate_ >= fps_)))
     {
@@ -168,7 +167,7 @@ void ZEDDriverNode::camera_routine()
         sem_post(&depth_sem_1_);
         continue;
       }
-      last_depth_ts_ = curr_ts;
+      last_depth_ts = curr_ts;
 
       sem_post(&depth_sem_2_);
     }

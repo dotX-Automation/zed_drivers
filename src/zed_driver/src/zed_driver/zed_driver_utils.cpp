@@ -1,8 +1,6 @@
 /**
  * Utility routines for the ZED Driver node.
  *
- * Roberto Masocco <r.masocco@dotxautomation.com>
- *
  * June 24, 2024
  */
 

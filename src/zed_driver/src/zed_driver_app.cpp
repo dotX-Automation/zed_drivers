@@ -1,8 +1,6 @@
 /**
  * ZED Driver standalone application.
  *
- * Roberto Masocco <r.masocco@dotxautomation.com>
- *
  * June 24, 2024
  */
 

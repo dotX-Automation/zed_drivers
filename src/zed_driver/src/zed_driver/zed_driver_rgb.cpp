@@ -1,8 +1,6 @@
 /**
  * RGB data processing routines.
  *
- * Roberto Masocco <r.masocco@dotxautomation.com>
- *
  * June 24, 2024
  */
 

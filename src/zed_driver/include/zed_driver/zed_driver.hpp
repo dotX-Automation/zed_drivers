@@ -1,8 +1,6 @@
 /**
  * ZED Driver node definition.
  *
- * Roberto Masocco <r.masocco@dotxautomation.com>
- *
  * June 24, 2024
  */
 

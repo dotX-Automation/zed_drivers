@@ -1,8 +1,6 @@
 /**
  * Implementation of the main worker thread of the ZED Driver node.
  *
- * Roberto Masocco <r.masocco@dotxautomation.com>
- *
  * June 24, 2024
  */
 

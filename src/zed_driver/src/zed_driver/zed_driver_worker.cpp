@@ -76,7 +76,7 @@ void ZEDDriverNode::camera_routine()
   rclcpp::Time curr_ts(0L, RCL_SYSTEM_TIME);
   rclcpp::Time last_depth_ts(0L, RCL_SYSTEM_TIME);
   rclcpp::Duration depth_period(
-    std::chrono::nanoseconds(int(1.0 / double(depth_rate_ > 0 ? depth_rate_ : fps_) * 1e9)));
+    std::chrono::nanoseconds(int(1.0 / double(depth_rate_ > 0 ? depth_rate_ : camera_fps_) * 1e9)));
 
   // Spawn depth processing thread
   depth_thread_ = std::thread(
@@ -102,12 +102,12 @@ void ZEDDriverNode::camera_routine()
   sl::RuntimeParameters runtime_params;
   runtime_params.measure3D_reference_frame = sl::REFERENCE_FRAME::CAMERA;
   runtime_params.enable_depth = true;
-  runtime_params.enable_fill_mode = false;
+  runtime_params.enable_fill_mode = depth_fill_;
   runtime_params.remove_saturated_areas = true;
   while (running_.load(std::memory_order_acquire)) {
     // Grab data
-    runtime_params.confidence_threshold = static_cast<int>(confidence_);
-    runtime_params.texture_confidence_threshold = static_cast<int>(texture_confidence_);
+    runtime_params.confidence_threshold = static_cast<int>(depth_confidence_);
+    runtime_params.texture_confidence_threshold = static_cast<int>(depth_texture_confidence_);
     err = zed_.grab(runtime_params);
     if (err != sl::ERROR_CODE::SUCCESS) {
       if (err == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
@@ -144,7 +144,7 @@ void ZEDDriverNode::camera_routine()
       (depth_rate_ >= 0) &&
       (((curr_ts - last_depth_ts) >= depth_period) ||
       (depth_rate_ == 0) ||
-      (depth_rate_ >= fps_)))
+      (depth_rate_ >= camera_fps_)))
     {
       sem_wait(&depth_sem_1_);
 

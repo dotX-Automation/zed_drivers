@@ -191,31 +191,33 @@ private:
   /* Node parameters. */
   bool autostart_;
   std::string base_link_name_ = "";
-  int64_t confidence_ = 50;
+  int camera_fps_ = 15;
+  sl::RESOLUTION camera_resolution_ = sl::RESOLUTION::HD720;
+  int64_t depth_confidence_ = 50;
+  bool depth_fill_ = false;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;
   std::vector<int64_t> depth_resolution_ = {0, 0};
-  int fps_ = 15;
+  int64_t depth_texture_confidence_ = 100;
   std::string frame_prefix_ = "";
   int64_t imu_sampling_time_ = 0;
   std::string local_frame_ = "";
   bool publish_tf_ = false;
-  sl::RESOLUTION resolution_ = sl::RESOLUTION::HD720;
   sl::STREAMING_CODEC streaming_codec_ = sl::STREAMING_CODEC::H264;
   sl::SVO_COMPRESSION_MODE svo_compression = sl::SVO_COMPRESSION_MODE::H264;
-  int64_t texture_confidence_ = 100;
   bool tracking_enable_ = false;
   bool tracking_set_gravity_as_origin_ = false;
   std::vector<int64_t> video_sd_resolution_ = {0, 0};
   bool video_stream_hd_ = false;
   int64_t video_stream_rate_ = 0;
-  bool verbose_ = false;
   std::string video_stream_record_path_ = "";
+  bool verbose_ = false;
 
   /* Node parameters validators. */
+  bool validate_camera_fps(const rclcpp::Parameter & p);
+  bool validate_camera_resolution(const rclcpp::Parameter & p);
   bool validate_depth_mode(const rclcpp::Parameter & p);
-  bool validate_fps(const rclcpp::Parameter & p);
-  bool validate_resolution(const rclcpp::Parameter & p);
+  bool validate_depth_sensing_mode(const rclcpp::Parameter & p);
   bool validate_streaming_codec(const rclcpp::Parameter & p);
   bool validate_svo_compression(const rclcpp::Parameter & p);
   bool validate_tracking_enable(const rclcpp::Parameter & p);

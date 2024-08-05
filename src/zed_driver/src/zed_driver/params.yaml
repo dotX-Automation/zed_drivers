@@ -19,6 +19,35 @@ params:
     read_only: true
     var_name: base_link_name_
 
+  camera_fps:
+    type: integer
+    default_value: 30
+    min_value: 15
+    max_value: 100
+    step: 1
+    description: "Frame rate of the camera"
+    constraints: "Changes require camera restart, must be a valid frame rate for the ZED camera"
+    read_only: false
+    validator: validate_camera_fps
+
+  camera_resolution:
+    type: string
+    default_value: HD720
+    description: "Camera resolution"
+    constraints: "Changes require camera restart, must be a valid resolution for the ZED camera"
+    read_only: false
+    validator: validate_camera_resolution
+
+  camera_serial_number:
+    type: integer
+    default_value: -1
+    min_value: -1
+    max_value: 2147483647
+    step: 1
+    description: "Serial number of the camera to open"
+    constraints: "Must be a valid serial number, or -1 to open the first available camera"
+    read_only: false
+
   camera_settings_path:
     type: string
     default_value: ""
@@ -26,7 +55,7 @@ params:
     constraints: "Changes require camera restart, must be a valid file path"
     read_only: false
 
-  confidence:
+  depth_confidence:
     type: integer
     default_value: 50
     min_value: 0
@@ -35,7 +64,15 @@ params:
     description: "Depth confidence threshold"
     constraints: "Must be a valid confidence threshold for the ZED camera"
     read_only: false
-    var_name: confidence_
+    var_name: depth_confidence_
+
+  depth_fill:
+    type: bool
+    default_value: false
+    description: "Enables depth map filling, so that it is dense and always complete"
+    constraints: "Changes require camera restart, overrides all the other depth confidence parameters"
+    read_only: true
+    var_name: depth_fill_
 
   depth_max_distance:
     type: double
@@ -99,16 +136,16 @@ params:
     constraints: "Changes require camera restart, must be a valid depth stabilization value for the ZED camera"
     read_only: false
 
-  fps:
+  depth_texture_confidence:
     type: integer
-    default_value: 30
-    min_value: 15
+    default_value: 100
+    min_value: 0
     max_value: 100
     step: 1
-    description: "Frame rate of the camera"
-    constraints: "Changes require camera restart, must be a valid frame rate for the ZED camera"
+    description: "Depth texture confidence threshold"
+    constraints: "Must be a valid texture confidence threshold for the ZED camera"
     read_only: false
-    validator: validate_fps
+    var_name: depth_texture_confidence_
 
   frame_prefix:
     type: string
@@ -144,24 +181,6 @@ params:
     constraints: ""
     read_only: false
     var_name: publish_tf_
-
-  resolution:
-    type: string
-    default_value: HD720
-    description: "Camera resolution"
-    constraints: "Changes require camera restart, must be a valid resolution for the ZED camera"
-    read_only: false
-    validator: validate_resolution
-
-  serial_number:
-    type: integer
-    default_value: -1
-    min_value: -1
-    max_value: 2147483647
-    step: 1
-    description: "Serial number of the camera to open"
-    constraints: "Must be a valid serial number, or -1 to open the first available camera"
-    read_only: false
 
   streaming_adaptative_bitrate:
     type: bool
@@ -263,17 +282,6 @@ params:
     description: "Enables NVENC transcoding of an RTP remote camera stream to an SVO file for recording"
     constraints: "Changes require camera restart"
     read_only: false
-
-  texture_confidence:
-    type: integer
-    default_value: 100
-    min_value: 0
-    max_value: 100
-    step: 1
-    description: "Texture confidence threshold"
-    constraints: "Must be a valid texture confidence threshold for the ZED camera"
-    read_only: false
-    var_name: texture_confidence_
 
   tracking_depth_min_range:
     type: double

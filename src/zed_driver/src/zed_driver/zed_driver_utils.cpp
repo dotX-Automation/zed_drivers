@@ -39,7 +39,7 @@ bool ZEDDriverNode::open_camera()
   double depth_max_distance = this->get_parameter("depth_max_distance").as_double();
   double depth_min_distance = this->get_parameter("depth_min_distance").as_double();
   int64_t depth_stabilization = this->get_parameter("depth_stabilization").as_int();
-  int64_t serial_number = this->get_parameter("serial_number").as_int();
+  int64_t serial_number = this->get_parameter("camera_serial_number").as_int();
   std::string streaming_codec = this->get_parameter("streaming_codec").as_string();
   std::string streaming_sender_ip = this->get_parameter("streaming_sender_ip").as_string();
   unsigned short streaming_sender_port = this->get_parameter("streaming_sender_port").as_int();
@@ -61,8 +61,8 @@ bool ZEDDriverNode::open_camera()
   // - Some parameters are fixed given our use case for this sensor
   // See the ZED SDK documentation for more details
   sl::InitParameters init_params;
-  init_params.camera_resolution = resolution_; // This must be validated
-  init_params.camera_fps = fps_; // This must be validated
+  init_params.camera_resolution = camera_resolution_; // This must be validated
+  init_params.camera_fps = camera_fps_; // This must be validated
   init_params.camera_image_flip = sl::FLIP_MODE::OFF;
   init_params.camera_disable_self_calib = false;
   init_params.enable_right_side_measure = false;
@@ -493,7 +493,7 @@ bool ZEDDriverNode::validate_tracking_enable(const rclcpp::Parameter & p)
  * @param p Parameter to validate.
  * @return True if the parameter is valid, false otherwise.
  */
-bool ZEDDriverNode::validate_fps(const rclcpp::Parameter & p)
+bool ZEDDriverNode::validate_camera_fps(const rclcpp::Parameter & p)
 {
   int64_t fps = p.as_int();
 
@@ -502,7 +502,7 @@ bool ZEDDriverNode::validate_fps(const rclcpp::Parameter & p)
     case 30:
     case 60:
     case 100:
-      fps_ = static_cast<int>(fps);
+      camera_fps_ = static_cast<int>(fps);
       return true;
     default:
       RCLCPP_ERROR(
@@ -519,18 +519,18 @@ bool ZEDDriverNode::validate_fps(const rclcpp::Parameter & p)
  * @param p Parameter to validate.
  * @return True if the parameter is valid, false otherwise.
  */
-bool ZEDDriverNode::validate_resolution(const rclcpp::Parameter & p)
+bool ZEDDriverNode::validate_camera_resolution(const rclcpp::Parameter & p)
 {
   std::string resolution = p.as_string();
 
   if (resolution == "HD2K") {
-    resolution_ = sl::RESOLUTION::HD2K;
+    camera_resolution_ = sl::RESOLUTION::HD2K;
   } else if (resolution == "HD1080") {
-    resolution_ = sl::RESOLUTION::HD1080;
+    camera_resolution_ = sl::RESOLUTION::HD1080;
   } else if (resolution == "HD720") {
-    resolution_ = sl::RESOLUTION::HD720;
+    camera_resolution_ = sl::RESOLUTION::HD720;
   } else if (resolution == "VGA") {
-    resolution_ = sl::RESOLUTION::VGA;
+    camera_resolution_ = sl::RESOLUTION::VGA;
   } else {
     RCLCPP_ERROR(
       this->get_logger(),

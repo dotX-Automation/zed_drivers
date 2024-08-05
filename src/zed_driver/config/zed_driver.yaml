@@ -2,23 +2,25 @@
   ros__parameters:
     autostart: true
     base_link_name: base_link
+    camera_fps: 30
+    camera_resolution: HD720
+    camera_serial_number: -1
     camera_settings_path: ""
-    confidence: 20
+    depth_confidence: 20
+    depth_fill: false
     depth_max_distance: 5.0
     depth_min_distance: 0.5
     depth_mode: ULTRA
-    depth_rate: 2
+    depth_rate: 4
     depth_resolution:
-      - 480
-      - 270
-    depth_stabilization: 1
-    fps: 30
+      - 640
+      - 360
+    depth_stabilization: 100
+    depth_texture_confidence: 100
     frame_prefix: ""
     imu_sampling_time: 2500
     local_frame: odom
     publish_tf: true
-    resolution: HD720
-    serial_number: -1
     streaming_adaptative_bitrate: true
     streaming_bitrate: 6000
     streaming_chunk_size: 16084
@@ -31,7 +33,6 @@
     svo_file: ''
     svo_record: false
     svo_transcode_stream: false
-    texture_confidence: 100
     tracking_depth_min_range: -1.0
     tracking_enable: true
     tracking_enable_area_memory: true
@@ -45,5 +46,5 @@
       - 640
       - 360
     video_stream_hd: false
-    video_stream_rate: 10
+    video_stream_rate: 4
     video_stream_record_path: ""

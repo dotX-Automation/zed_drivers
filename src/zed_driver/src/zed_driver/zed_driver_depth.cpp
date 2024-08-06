@@ -98,7 +98,7 @@ void ZEDDriverNode::depth_routine()
         // Extract point position w.r.t. the camera from ZED data
         sl::float4 point3D;
         if ((depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) ||
-          ((isValidMeasure(point3D.x) || isValidMeasure(point3D.y) || isValidMeasure(point3D.z))))
+          ((!isValidMeasure(point3D.x) || !isValidMeasure(point3D.y) || !isValidMeasure(point3D.z))))
         {
           memcpy(
             static_cast<void *>(

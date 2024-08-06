@@ -155,16 +155,16 @@ params:
     read_only: true
     var_name: frame_prefix_
 
-  imu_sampling_time:
+  sensors_sampling_time:
     type: integer
     default_value: 2500
     min_value: -1
     max_value: 1000000
     step: 1
-    description: "IMU sampling time [us]"
+    description: "Sensors sampling time (IMU, barometer ecc.) [us]"
     constraints: "Default is ZED IMU rate (400 Hz), 0 means no rate synchronization, might have to account for processing and ROS operations"
     read_only: true
-    var_name: imu_sampling_time_
+    var_name: sensors_sampling_time_
 
   local_frame:
     type: string

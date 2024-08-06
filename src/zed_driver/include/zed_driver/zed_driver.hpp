@@ -198,9 +198,9 @@ private:
   std::vector<int64_t> depth_resolution_ = {0, 0};
   int64_t depth_texture_confidence_ = 100;
   std::string frame_prefix_ = "";
-  int64_t imu_sampling_time_ = 0;
   std::string local_frame_ = "";
   bool publish_tf_ = false;
+  int64_t sensors_sampling_time_ = 0;
   sl::STREAMING_CODEC streaming_codec_ = sl::STREAMING_CODEC::H264;
   sl::SVO_COMPRESSION_MODE svo_compression = sl::SVO_COMPRESSION_MODE::H264;
   bool tracking_enable_ = false;

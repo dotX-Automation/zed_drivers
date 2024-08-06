@@ -18,9 +18,9 @@
     depth_stabilization: 100
     depth_texture_confidence: 100
     frame_prefix: ""
-    imu_sampling_time: 2500
     local_frame: odom
     publish_tf: true
+    sensors_sampling_time: 2500
     streaming_adaptative_bitrate: true
     streaming_bitrate: 6000
     streaming_chunk_size: 16084

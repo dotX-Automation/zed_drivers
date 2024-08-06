@@ -87,7 +87,7 @@ void ZEDDriverNode::camera_routine()
     this);
 
   // Spawn sensors processing thread (see zed_driver_sensors.cpp for more information)
-  if (physical_camera_ && (imu_sampling_time_ > -1)) {
+  if (physical_camera_ && (sensors_sampling_time_ > -1)) {
     sensors_thread_ = std::thread(
       &ZEDDriverNode::sensors_routine,
       this);
@@ -210,7 +210,7 @@ void ZEDDriverNode::camera_routine()
   RCLCPP_INFO(this->get_logger(), "RGB processing thread joined");
 
   // Join sensors processing thread
-  if (physical_camera_ && (imu_sampling_time_ > -1)) {
+  if (physical_camera_ && (sensors_sampling_time_ > -1)) {
     sensors_thread_.join();
     RCLCPP_INFO(this->get_logger(), "Sensors processing thread joined");
   }

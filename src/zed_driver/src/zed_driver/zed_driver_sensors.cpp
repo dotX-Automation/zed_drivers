@@ -69,8 +69,8 @@ void ZEDDriverNode::sensors_routine()
     }
 
     // Enforce a specific sampling rate
-    if (imu_sampling_time_ > 0) {
-      std::this_thread::sleep_for(std::chrono::microseconds(imu_sampling_time_));
+    if (sensors_sampling_time_ > 0) {
+      std::this_thread::sleep_for(std::chrono::microseconds(sensors_sampling_time_));
     }
   }
 }

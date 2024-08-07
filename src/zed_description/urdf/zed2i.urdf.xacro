@@ -8,7 +8,7 @@
   <xacro:property name="zed2i_baseline" value = "0.12"/>
   <xacro:property name="zed2i_imu_to_left_x" value = "0.002"/>
   <xacro:property name="zed2i_imu_to_left_y" value = "0.023"/>
-  <xacro:property name="zed2i_imu_to_left_z" value = "-0.00022"/>
+  <xacro:property name="zed2i_imu_to_left_z" value = "0.00022"/>
 
   <!-- Function -->
   <xacro:macro name="zed2i">
@@ -18,7 +18,7 @@
     <joint name="zed2i_center_joint" type="fixed">
       <parent link="base_link"/>
       <child link="zed2i_center_link"/>
-      <origin rpy="0 -${zed2i_tilt} 0" xyz="${zed2i_to_base_link_x} ${zed2i_to_base_link_y} ${zed2i_to_base_link_z}"/>
+      <origin rpy="0 ${zed2i_tilt} 0" xyz="${zed2i_to_base_link_x} ${zed2i_to_base_link_y} ${zed2i_to_base_link_z}"/>
     </joint>
     <link name="zed2i_right_link"></link>
 

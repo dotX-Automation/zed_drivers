@@ -133,9 +133,12 @@ void ZEDDriverNode::depth_routine()
         ++iter_pc_rgba;
       }
     }
-    pc_modifier.resize(valid_points);
-    point_cloud_pub_->publish(pc_msg);
-    depth_distances_pub_->publish(depth_distances_msg);
+
+    if (valid_points > 0U) {
+      pc_modifier.resize(valid_points);
+      point_cloud_pub_->publish(pc_msg);
+      depth_distances_pub_->publish(depth_distances_msg);
+    }
 
     sem_post(&depth_sem_1_);
   }

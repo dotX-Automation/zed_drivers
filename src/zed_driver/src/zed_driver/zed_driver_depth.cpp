@@ -92,7 +92,7 @@ void ZEDDriverNode::depth_routine()
 
     // Fill and publish point cloud and depth distances messages
     uint32_t valid_points = 0U;
-    double nan = std::numeric_limits<double>::quiet_NaN();
+    double zero = 0.0;
     for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
       for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
         // Extract point position w.r.t. the camera from ZED data
@@ -104,7 +104,7 @@ void ZEDDriverNode::depth_routine()
             static_cast<void *>(
               depth_distances_msg.data.data() + (i * depth_point_cloud_.getWidth() + j) *
               sizeof(double)),
-            static_cast<void *>(&nan),
+            static_cast<void *>(&zero),
             sizeof(double));
           continue;
         }

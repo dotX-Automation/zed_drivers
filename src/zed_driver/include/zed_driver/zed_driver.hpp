@@ -47,7 +47,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/photo.hpp>
 
 #include <sl/Camera.hpp>
 
@@ -193,7 +192,6 @@ private:
   int camera_fps_ = 15;
   sl::RESOLUTION camera_resolution_ = sl::RESOLUTION::HD720;
   int64_t depth_confidence_ = 50;
-  int64_t depth_distances_inpainting_radius_ = 0;
   bool depth_fill_ = false;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;

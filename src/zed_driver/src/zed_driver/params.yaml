@@ -66,17 +66,6 @@ params:
     read_only: false
     var_name: depth_confidence_
 
-  depth_distances_inpainting_radius:
-    type: integer
-    default_value: 5
-    min_value: 2
-    max_value: 100
-    step: 1
-    description: "Radius for the inpainting of the depth distances matrix [pixel]"
-    constraints: ""
-    read_only: false
-    var_name: depth_distances_inpainting_radius_
-
   depth_fill:
     type: bool
     default_value: false

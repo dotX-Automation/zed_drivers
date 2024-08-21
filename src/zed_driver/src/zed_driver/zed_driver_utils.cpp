@@ -356,7 +356,7 @@ Image::SharedPtr ZEDDriverNode::frame_to_msg(cv::Mat & frame)
   // Copy frame data
   size_t size = ros_image->step * frame.rows;
   ros_image->data.resize(size);
-  ::memcpy(ros_image->data.data(), frame.data, size);
+  memcpy(ros_image->data.data(), frame.data, size);
 
   return ros_image;
 }

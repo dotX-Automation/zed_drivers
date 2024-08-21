@@ -7,7 +7,6 @@
     camera_serial_number: -1
     camera_settings_path: ""
     depth_confidence: 20
-    depth_distances_inpainting_radius: 5
     depth_fill: false
     depth_max_distance: 5.0
     depth_min_distance: 0.5

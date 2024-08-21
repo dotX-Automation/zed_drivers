@@ -75,7 +75,7 @@ void ZEDDriverNode::depth_routine()
     sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
     sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
 
-    // Prepare depth distances message
+    // Prepare depth distances message and buffer
     Image depth_distances_msg{};
     depth_distances_msg.header.set__frame_id(camera_frame_);
     depth_distances_msg.header.stamp.set__sec(
@@ -84,15 +84,18 @@ void ZEDDriverNode::depth_routine()
       static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
     depth_distances_msg.set__width(depth_point_cloud_.getWidth());
     depth_distances_msg.set__height(depth_point_cloud_.getHeight());
-    depth_distances_msg.set__encoding(sensor_msgs::image_encodings::TYPE_64FC1);
+    depth_distances_msg.set__encoding(sensor_msgs::image_encodings::TYPE_32FC1);
     depth_distances_msg.set__is_bigendian(false);
-    depth_distances_msg.set__step(depth_point_cloud_.getWidth() * sizeof(double));
-    depth_distances_msg.data.resize(
-      depth_point_cloud_.getWidth() * depth_point_cloud_.getHeight() * sizeof(double));
+    depth_distances_msg.set__step(depth_point_cloud_.getWidth() * sizeof(float));
+    cv::Mat depth_distances_cv = cv::Mat::zeros(
+      depth_point_cloud_.getHeight(),
+      depth_point_cloud_.getWidth(),
+      CV_32FC1);
+    cv::Mat nan_mask = cv::Mat::zeros(depth_distances_cv.size(), CV_8U);
 
     // Fill and publish point cloud and depth distances messages
     uint32_t valid_points = 0U;
-    double nan = std::numeric_limits<double>::quiet_NaN();
+    float nan = std::numeric_limits<float>::quiet_NaN();
     for (uint64_t i = 0; i < depth_point_cloud_.getHeight(); ++i) {
       for (uint64_t j = 0; j < depth_point_cloud_.getWidth(); ++j) {
         // Extract point position w.r.t. the camera from ZED data
@@ -100,12 +103,8 @@ void ZEDDriverNode::depth_routine()
         if ((depth_point_cloud_.getValue(j, i, &point3D) == sl::ERROR_CODE::FAILURE) ||
           ((!isValidMeasure(point3D.x) || !isValidMeasure(point3D.y) || !isValidMeasure(point3D.z))))
         {
-          memcpy(
-            static_cast<void *>(
-              depth_distances_msg.data.data() + (i * depth_point_cloud_.getWidth() + j) *
-              sizeof(double)),
-            static_cast<void *>(&nan),
-            sizeof(double));
+          depth_distances_cv.at<float>(i, j) = nan;
+          nan_mask.at<unsigned char>(i, j) = 255;
           continue;
         }
         valid_points++;
@@ -116,15 +115,10 @@ void ZEDDriverNode::depth_routine()
         *iter_pc_z = point3D.z;
         *iter_pc_rgba = point3D.w;
 
-        // Fill depth distances message
-        Eigen::Vector3d point(point3D.x, point3D.y, point3D.z);
-        double distance = point.norm();
-        memcpy(
-          static_cast<void *>(
-            depth_distances_msg.data.data() + (i * depth_point_cloud_.getWidth() + j) *
-            sizeof(double)),
-          static_cast<void *>(&distance),
-          sizeof(double));
+        // Fill depth distances matrix
+        Eigen::Vector3f point(float(point3D.x), float(point3D.y), float(point3D.z));
+        float distance = point.norm();
+        depth_distances_cv.at<float>(i, j) = distance;
 
         // Advance iterators
         ++iter_pc_x;
@@ -135,6 +129,22 @@ void ZEDDriverNode::depth_routine()
     }
 
     if (valid_points > 0U) {
+      // Apply inpainting to fill holes in the distances matrix
+      cv::Mat depth_distances_inpaint;
+      cv::inpaint(
+        depth_distances_cv,
+        nan_mask,
+        depth_distances_inpaint,
+        depth_distances_inpainting_radius_,
+        cv::INPAINT_TELEA);
+
+      // Fill depth distances message
+      depth_distances_msg.set__step(
+        depth_distances_inpaint.cols * depth_distances_inpaint.elemSize());
+      size_t size = depth_distances_msg.step * depth_distances_inpaint.rows;
+      depth_distances_msg.data.resize(size);
+      ::memcpy(depth_distances_msg.data.data(), depth_distances_inpaint.data, size);
+
       pc_modifier.resize(valid_points);
       point_cloud_pub_->publish(pc_msg);
       depth_distances_pub_->publish(depth_distances_msg);

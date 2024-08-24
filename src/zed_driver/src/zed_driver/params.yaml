@@ -74,6 +74,14 @@ params:
     read_only: true
     var_name: depth_fill_
 
+  depth_map_filled:
+    type: bool
+    default_value: true
+    description: "Enables depth map filling with zeroes, instead of NaNs"
+    constraints: "Cannot be changed"
+    read_only: true
+    var_name: depth_map_filled_
+
   depth_max_distance:
     type: double
     default_value: 5.0

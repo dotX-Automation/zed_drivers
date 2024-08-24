@@ -10,6 +10,7 @@
     depth_fill: false
     depth_max_distance: 5.0
     depth_min_distance: 0.5
+    depth_map_filled: true
     depth_mode: ULTRA
     depth_rate: 4
     depth_resolution:

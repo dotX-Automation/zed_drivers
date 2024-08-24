@@ -126,6 +126,7 @@ private:
   rclcpp::Publisher<PoseWithCovarianceStamped>::SharedPtr camera_pose_pub_;
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
+  rclcpp::Publisher<PointCloud2>::SharedPtr depth_map_pub_;
 
   /* image_transport, camera_info publishers. */
   std::shared_ptr<image_transport::Publisher> left_rect_pub_;
@@ -193,6 +194,7 @@ private:
   sl::RESOLUTION camera_resolution_ = sl::RESOLUTION::HD720;
   int64_t depth_confidence_ = 50;
   bool depth_fill_ = false;
+  bool depth_map_filled_ = false;
   sl::DEPTH_MODE depth_mode_ = sl::DEPTH_MODE::QUALITY;
   int64_t depth_rate_ = 0;
   std::vector<int64_t> depth_resolution_ = {0, 0};

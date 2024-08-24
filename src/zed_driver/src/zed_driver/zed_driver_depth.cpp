@@ -75,6 +75,27 @@ void ZEDDriverNode::depth_routine()
     sensor_msgs::PointCloud2Iterator<float> iter_pc_z(pc_msg, "z");
     sensor_msgs::PointCloud2Iterator<float> iter_pc_rgba(pc_msg, "rgba");
 
+    // Prepare depth map message
+    PointCloud2 depth_map_msg{};
+    sensor_msgs::PointCloud2Modifier depth_map_modifier(depth_map_msg);
+    depth_map_msg.header.set__frame_id(camera_left_frame_);
+    depth_map_msg.header.stamp.set__sec(
+      static_cast<int32_t>(depth_point_cloud_.timestamp.getSeconds()));
+    depth_map_msg.header.stamp.set__nanosec(
+      static_cast<uint32_t>(depth_point_cloud_.timestamp.getNanoseconds() % uint64_t(1e9)));
+    depth_map_msg.set__width(depth_point_cloud_.getWidth());
+    depth_map_msg.set__height(depth_point_cloud_.getHeight());
+    depth_map_msg.set__is_bigendian(false);
+    depth_map_msg.set__is_dense(false);
+    depth_map_modifier.setPointCloud2Fields(
+      3,
+      "x", 1, PointField::FLOAT32,
+      "y", 1, PointField::FLOAT32,
+      "z", 1, PointField::FLOAT32);
+    sensor_msgs::PointCloud2Iterator<float> iter_depth_x(depth_map_msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_depth_y(depth_map_msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_depth_z(depth_map_msg, "z");
+
     // Prepare depth distances message
     Image depth_distances_msg{};
     depth_distances_msg.header.set__frame_id(camera_frame_);
@@ -106,6 +127,20 @@ void ZEDDriverNode::depth_routine()
               sizeof(double)),
             static_cast<void *>(&zero),
             sizeof(double));
+
+          if (depth_map_filled_) {
+            *iter_depth_x = 0.0f;
+            *iter_depth_y = 0.0f;
+            *iter_depth_z = 0.0f;
+          } else {
+            *iter_depth_x = std::numeric_limits<float>::quiet_NaN();
+            *iter_depth_y = std::numeric_limits<float>::quiet_NaN();
+            *iter_depth_z = std::numeric_limits<float>::quiet_NaN();
+          }
+          ++iter_depth_x;
+          ++iter_depth_y;
+          ++iter_depth_z;
+
           continue;
         }
         valid_points++;
@@ -115,6 +150,11 @@ void ZEDDriverNode::depth_routine()
         *iter_pc_y = point3D.y;
         *iter_pc_z = point3D.z;
         *iter_pc_rgba = point3D.w;
+
+        // Fill depth map message
+        *iter_depth_x = -point3D.y;
+        *iter_depth_y = -point3D.z;
+        *iter_depth_z = point3D.x;
 
         // Fill depth distances message
         Eigen::Vector3d point(point3D.x, point3D.y, point3D.z);
@@ -131,12 +171,16 @@ void ZEDDriverNode::depth_routine()
         ++iter_pc_y;
         ++iter_pc_z;
         ++iter_pc_rgba;
+        ++iter_depth_x;
+        ++iter_depth_y;
+        ++iter_depth_z;
       }
     }
 
     if (valid_points > 0U) {
       pc_modifier.resize(valid_points);
       point_cloud_pub_->publish(pc_msg);
+      depth_map_pub_->publish(depth_map_msg);
       depth_distances_pub_->publish(depth_distances_msg);
     }
 

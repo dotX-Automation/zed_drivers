@@ -125,6 +125,11 @@ void ZEDDriverNode::init_publishers()
     "~/point_cloud",
     dua_qos::Reliable::get_scan_qos());
 
+  // depth_map
+  depth_map_pub_ = this->create_publisher<PointCloud2>(
+    "~/depth_map",
+    dua_qos::Reliable::get_scan_qos());
+
   // left/camera_info
   left_info_pub_ = this->create_publisher<CameraInfo>(
     "~/left/camera_info",

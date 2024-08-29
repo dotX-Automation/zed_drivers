@@ -87,11 +87,17 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
         return;
       }
     }
-    Eigen::Vector3d odom_to_camera_odom_ypr =
-      tf2::transformToEigen(odom_to_camera_odom).rotation().eulerAngles(2, 1, 0);
+    tf2Scalar camera_roll, camera_pitch, camera_yaw;
+    tf2::Matrix3x3 odom_to_camera_odom_mat(
+      tf2::Quaternion{
+        odom_to_camera_odom.transform.rotation.x,
+        odom_to_camera_odom.transform.rotation.y,
+        odom_to_camera_odom.transform.rotation.z,
+        odom_to_camera_odom.transform.rotation.w});
+    odom_to_camera_odom_mat.getEulerYPR(camera_yaw, camera_pitch, camera_roll);
     Eigen::Matrix3d camera_odom_rp(
-      Eigen::AngleAxisd(odom_to_camera_odom_ypr[2], Eigen::Vector3d::UnitX()) *
-      Eigen::AngleAxisd(odom_to_camera_odom_ypr[1], Eigen::Vector3d::UnitY()));
+      Eigen::AngleAxisd(camera_roll, Eigen::Vector3d::UnitX()) *
+      Eigen::AngleAxisd(camera_pitch, Eigen::Vector3d::UnitY()));
     Eigen::Matrix<double, 6, 6> camera_odom_rp_covariance = Eigen::Matrix<double, 6, 6>::Zero();
     camera_odom_rp_covariance.block<3, 3>(0, 0) = camera_odom_rp;
     camera_odom_rp_covariance.block<3, 3>(3, 3) = camera_odom_rp;

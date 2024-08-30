@@ -128,6 +128,7 @@ private:
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr point_cloud_pub_;
   rclcpp::Publisher<PointCloud2>::SharedPtr depth_map_pub_;
+  rclcpp::Publisher<Image>::SharedPtr depth_distances_pub_;
 
   /* image_transport, camera_info publishers. */
   std::shared_ptr<image_transport::Publisher> left_rect_pub_;
@@ -137,7 +138,6 @@ private:
   std::shared_ptr<TheoraWrappers::Publisher> left_stream_pub_;
   std::shared_ptr<TheoraWrappers::Publisher> right_stream_pub_;
   std::shared_ptr<image_transport::Publisher> depth_pub_;
-  std::shared_ptr<image_transport::Publisher> depth_distances_pub_;
   rclcpp::Publisher<CameraInfo>::SharedPtr left_info_pub_;
   rclcpp::Publisher<CameraInfo>::SharedPtr right_info_pub_;
   rclcpp::Publisher<CameraInfo>::SharedPtr left_sd_info_pub_;

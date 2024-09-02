@@ -418,11 +418,6 @@ void ZEDDriverNode::init_camera_info(
   for (int i = 0; i < 5; i++) {
     info.d.push_back(zed_params.disto[i]);
   }
-  info.k[0] = zed_params.fx;
-  info.k[2] = zed_params.cx;
-  info.k[4] = zed_params.fy;
-  info.k[5] = zed_params.cy;
-  info.k[8] = 1.0;
   info.r[0] = 1.0;
   info.r[4] = 1.0;
   info.r[8] = 1.0;

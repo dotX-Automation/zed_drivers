@@ -114,6 +114,10 @@ void ZEDDriverNode::positional_tracking(sl::Pose & camera_pose)
       camera_odom_rp_covariance.transpose() * pose_covariance_in_map * camera_odom_rp_covariance;
   }
 
+  // Apply corrections to VIO position data
+  position.x() *= x_correction_;
+  position.y() *= y_correction_;
+
   pose_kit::Pose zed_pose(
     position,
     orientation,

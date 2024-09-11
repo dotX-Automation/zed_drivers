@@ -213,6 +213,8 @@ private:
   int64_t video_stream_rate_ = 0;
   std::string video_stream_record_path_ = "";
   bool verbose_ = false;
+  double x_correction_ = 0.0;
+  double y_correction_ = 0.0;
 
   /* Node parameters validators. */
   bool validate_camera_fps(const rclcpp::Parameter & p);

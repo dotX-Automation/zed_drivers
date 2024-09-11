@@ -49,3 +49,5 @@
     video_stream_hd: false
     video_stream_rate: 4
     video_stream_record_path: ""
+    x_correction: 1.0
+    y_correction: 1.0
